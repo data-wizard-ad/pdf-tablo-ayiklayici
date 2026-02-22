@@ -108,3 +108,4 @@ with col1:
 with col2:
     st.markdown("### 📈 Use Cases")
     st.write("Perfect for financial statements, invoices, and data analysis reports.")
+
