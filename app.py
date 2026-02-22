@@ -15,7 +15,6 @@ st.set_page_config(
         'About': "# Data Wizard PDF\nNo Email, No Registration. Just Data."
     }
 )
-
 # --- SEO & FAQ BLOCK (Google Botları İçin) ---
 st.divider()
 st.markdown("### 🔍 Frequently Asked Questions (FAQ)")
@@ -124,4 +123,5 @@ with col1:
 with col2:
     st.markdown("### 📈 Use Cases")
     st.write("Perfect for financial statements, invoices, and data analysis reports.")
+
 
