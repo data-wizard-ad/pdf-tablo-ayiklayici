@@ -4,7 +4,7 @@ import pandas as pd
 from io import BytesIO
 import streamlit.components.v1 as components
 
-# 1. SEO AYARLARI (Google Arama Sonuçları İçin)
+# 1. SEO VE SAYFA AYARLARI (En üstte olmalı!)
 st.set_page_config(
     page_title="Free PDF to Excel Converter | Data Wizard | No Registration",
     page_icon="📊",
@@ -29,7 +29,7 @@ def add_analytics(ga_id):
     """
     components.html(ga_code, height=0)
 
-# Gerçek ID'ni buraya yazdığından emin ol
+# Google Analytics ID
 add_analytics("G-SH8W61QFSS")
 
 # --- SIDEBAR (SOL MENÜ) ---
@@ -48,8 +48,6 @@ with st.sidebar:
 
 # --- ANA EKRAN VE SEO METNİ ---
 st.title("📊 Professional PDF Table Extractor")
-
-# Bu kısım Google botları için "Anahtar Kelime" deposudur
 st.markdown("""
     **The fastest free tool to convert PDF tables to Excel.** *Secure, browser-based, and private. No email required.*
 """)
@@ -64,7 +62,6 @@ if uploaded_file is not None:
             table = page.extract_table()
             
             if table:
-                # Sütun düzenleme mantığın (Dokunmadık, harika çalışıyor)
                 raw_cols = table[0]
                 new_cols = []
                 for idx, v in enumerate(raw_cols):
@@ -99,7 +96,7 @@ if uploaded_file is not None:
             )
             st.success(f"✅ {len(all_tables)} page(s) processed successfully!")
 
-# 3. ALT BİLGİ VE REKLAM/SEO ALANI
+# 3. ALT BİLGİ (FOOTER)
 st.divider()
 col1, col2 = st.columns(2)
 with col1:
@@ -108,4 +105,3 @@ with col1:
 with col2:
     st.markdown("### 📈 Use Cases")
     st.write("Perfect for financial statements, invoices, and data analysis reports.")
-
