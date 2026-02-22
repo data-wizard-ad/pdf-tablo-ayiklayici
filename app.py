@@ -16,6 +16,25 @@ st.set_page_config(
     }
 )
 
+# --- SEO & FAQ BLOCK (Google Botları İçin) ---
+st.divider()
+st.markdown("### 🔍 Frequently Asked Questions (FAQ)")
+
+with st.expander("Is this PDF to Excel converter really free?"):
+    st.write("Yes! Data Wizard is a 100% free tool. We don't have hidden fees or premium versions.")
+
+with st.expander("Do I need to provide an email address?"):
+    st.write("No. Unlike other tools, we do not collect emails or require registration. Your privacy is our priority.")
+
+with st.expander("How secure is my data?"):
+    st.write("Your files are processed in your browser's memory and are not stored on our servers. Once you close the tab, the data is gone.")
+
+with st.expander("Which PDF tables can be extracted?"):
+    st.write("Our wizard is optimized for structured tables, financial reports, and invoices. It uses the 'pdfplumber' engine for high accuracy.")
+
+# Sayfanın en altına görünmez bir SEO etiketi
+st.caption("Free Online PDF to Excel Converter | No Signup | Privacy-Focused Data Extraction Tool 2026")
+
 # 2. GOOGLE ANALYTICS FONKSİYONU
 def add_analytics(ga_id):
     ga_code = f"""
@@ -105,3 +124,4 @@ with col1:
 with col2:
     st.markdown("### 📈 Use Cases")
     st.write("Perfect for financial statements, invoices, and data analysis reports.")
+
