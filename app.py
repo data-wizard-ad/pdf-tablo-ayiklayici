@@ -4,7 +4,7 @@ import pandas as pd
 from io import BytesIO
 import streamlit.components.v1 as components
 
-# 1. SEO VE SAYFA AYARLARI (Her zaman en üstte olmalı)
+# 1. SEO VE SAYFA AYARLARI
 st.set_page_config(
     page_title="Free PDF to Excel Converter | Data Wizard | No Registration",
     page_icon="📊",
@@ -16,21 +16,20 @@ st.set_page_config(
     }
 )
 
-# 2. GOOGLE ANALYTICS FONKSİYONU
+# 2. GOOGLE ANALYTICS FONKSİYONU (Tanımlama)
 def add_analytics(ga_id):
+    # Analytics kodunu biraz daha sağlamlaştırdık
     ga_code = f"""
     <script async src="https://www.googletagmanager.com/gtag/js?id={ga_id}"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){{dataLayer.push(arguments);}}
       gtag('js', new Date());
-      gtag('config', '{ga_id}');
+      gtag('config', '{ga_id}', {{ 'send_page_view': true }});
     </script>
     """
-    components.html(ga_code, height=0)
-
-# Google Analytics Tetikleyici
-add_analytics("G-SH8W61QFSS")
+    # height=0 ve width=0 yaparak tamamen gizliyoruz
+    components.html(ga_code, height=0, width=0)
 
 # --- SIDEBAR (SOL MENÜ) ---
 with st.sidebar:
@@ -41,7 +40,6 @@ with st.sidebar:
     st.markdown("### 🛠️ Need Custom Automation?")
     st.warning("**Have thousands of PDFs?** I can build custom Python scripts for your specific business needs.")
     
-    # Mail butonu ve kopyalanabilir mail adresi
     st.link_button("📩 Get a Quote", "mailto:berkant.pak07@gmail.com?subject=Custom%20Automation%20Inquiry")
     st.caption("Or contact directly at:")
     st.code("berkant.pak07@gmail.com") 
@@ -71,7 +69,6 @@ if uploaded_file is not None:
         for i, page in enumerate(pdf.pages):
             table = page.extract_table()
             if table:
-                # Sütun isimlerini temizleme mantığı
                 raw_cols = table[0]
                 new_cols = []
                 for idx, v in enumerate(raw_cols):
@@ -112,4 +109,27 @@ st.markdown("### 🔍 Frequently Asked Questions (FAQ)")
 with st.expander("Is this PDF to Excel converter really free?"):
     st.write("Yes! Data Wizard is a 100% free tool. We don't have hidden fees or premium versions.")
 
-with
+with st.expander("Do I need to provide an email address?"):
+    st.write("No. Unlike other tools, we do not collect emails or require registration. Your privacy is our priority.")
+
+with st.expander("How secure is my data?"):
+    st.write("Your files are processed in your browser's memory and are not stored on our servers. Once you close the tab, the data is gone.")
+
+with st.expander("Which PDF tables can be extracted?"):
+    st.write("Our wizard is optimized for structured tables, financial reports, and invoices. It uses the 'pdfplumber' engine for high accuracy.")
+
+# --- FOOTER ---
+st.divider()
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("### 🛡️ Privacy First")
+    st.write("We do not store your files. Extraction happens directly in your browser session.")
+with col2:
+    st.markdown("### 📈 Use Cases")
+    st.write("Perfect for financial statements, invoices, and data analysis reports.")
+
+st.caption("Free Online PDF to Excel Converter | No Signup | Privacy-Focused Data Extraction Tool 2026")
+
+# --- SON ADIM: ANALYTICS TETİKLEYİCİ ---
+# Sayfa tamamen oluştuktan sonra en sonda çağırıyoruz.
+add_analytics("G-SH8W61QFSS")
