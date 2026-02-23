@@ -4,7 +4,7 @@ import pandas as pd
 from io import BytesIO
 import streamlit.components.v1 as components
 
-# 1. SEO VE SAYFA AYARLARI (En üstte olmalı!)
+# 1. SEO VE SAYFA AYARLARI
 st.set_page_config(
     page_title="Free PDF to Excel Converter | Data Wizard | No Registration",
     page_icon="📊",
@@ -15,24 +15,6 @@ st.set_page_config(
         'About': "# Data Wizard PDF\nNo Email, No Registration. Just Data."
     }
 )
-# --- SEO & FAQ BLOCK (Google Botları İçin) ---
-st.divider()
-st.markdown("### 🔍 Frequently Asked Questions (FAQ)")
-
-with st.expander("Is this PDF to Excel converter really free?"):
-    st.write("Yes! Data Wizard is a 100% free tool. We don't have hidden fees or premium versions.")
-
-with st.expander("Do I need to provide an email address?"):
-    st.write("No. Unlike other tools, we do not collect emails or require registration. Your privacy is our priority.")
-
-with st.expander("How secure is my data?"):
-    st.write("Your files are processed in your browser's memory and are not stored on our servers. Once you close the tab, the data is gone.")
-
-with st.expander("Which PDF tables can be extracted?"):
-    st.write("Our wizard is optimized for structured tables, financial reports, and invoices. It uses the 'pdfplumber' engine for high accuracy.")
-
-# Sayfanın en altına görünmez bir SEO etiketi
-st.caption("Free Online PDF to Excel Converter | No Signup | Privacy-Focused Data Extraction Tool 2026")
 
 # 2. GOOGLE ANALYTICS FONKSİYONU
 def add_analytics(ga_id):
@@ -47,12 +29,20 @@ def add_analytics(ga_id):
     """
     components.html(ga_code, height=0)
 
-# Google Analytics ID
 add_analytics("G-SH8W61QFSS")
 
 # --- SIDEBAR (SOL MENÜ) ---
 with st.sidebar:
     st.title("🧙‍♂️ Data Wizard")
+    st.markdown("---")
+    
+    # YENİ: ÖZEL OTOMASYON HİZMETİ BÖLÜMÜ
+    st.markdown("### 🛠️ Need Custom Automation?")
+    st.warning("""
+        **Have thousands of PDFs?** I can build custom Python scripts for your specific business needs. 
+    """)
+    st.link_button("📩 Get a Quote (Contact Me)", "mailto:berkant.pak07@gmail.com?subject=Custom%20Automation%20Inquiry")
+    
     st.markdown("---")
     st.markdown("### 🌟 Why use this?")
     st.info("No sign-up, no email collection, no hidden fees. Just clean data extraction.")
@@ -70,15 +60,16 @@ st.markdown("""
     **The fastest free tool to convert PDF tables to Excel.** *Secure, browser-based, and private. No email required.*
 """)
 
+# Sıkça Sorulan Soruları (FAQ) yukarıya veya bir expander içine alabiliriz 
+# (Şu anki yerinde bıraktım ama istersen aşağıya taşıyabilirsin)
+
 uploaded_file = st.file_uploader("Upload your PDF file (containing tables)", type="pdf")
 
 if uploaded_file is not None:
     with pdfplumber.open(uploaded_file) as pdf:
         all_tables = []
-        
         for i, page in enumerate(pdf.pages):
             table = page.extract_table()
-            
             if table:
                 raw_cols = table[0]
                 new_cols = []
@@ -92,7 +83,6 @@ if uploaded_file is not None:
                 
                 df = pd.DataFrame(table[1:], columns=new_cols)
                 all_tables.append((f"Page_{i+1}", df))
-                
                 st.subheader(f"📄 Page {i+1} Preview:")
                 st.dataframe(df, use_container_width=True)
             else:
@@ -114,6 +104,19 @@ if uploaded_file is not None:
             )
             st.success(f"✅ {len(all_tables)} page(s) processed successfully!")
 
+# --- SEO & FAQ BLOCK (Geliştirilmiş) ---
+st.divider()
+st.markdown("### 🔍 Frequently Asked Questions (FAQ)")
+
+with st.expander("Is this PDF to Excel converter really free?"):
+    st.write("Yes! Data Wizard is a 100% free tool. We don't have hidden fees or premium versions.")
+
+with st.expander("Do I need to provide an email address?"):
+    st.write("No. Unlike other tools, we do not collect emails or require registration. Your privacy is our priority.")
+
+with st.expander("How secure is my data?"):
+    st.write("Your files are processed in your browser's memory and are not stored on our servers. Once you close the tab, the data is gone.")
+
 # 3. ALT BİLGİ (FOOTER)
 st.divider()
 col1, col2 = st.columns(2)
@@ -124,4 +127,4 @@ with col2:
     st.markdown("### 📈 Use Cases")
     st.write("Perfect for financial statements, invoices, and data analysis reports.")
 
-
+st.caption("Free Online PDF to Excel Converter | No Signup | Privacy-Focused Data Extraction Tool 2026")
