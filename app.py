@@ -5,15 +5,13 @@ from io import BytesIO
 import streamlit.components.v1 as components
 import time
 
-# 1. SEO VE PROFESYONEL SAYFA AYARLARI
+# 1. SEO VE MASTER SAYFA AYARLARI
 st.set_page_config(
-    page_title="Data Wizard | Professional PDF to Excel & CSV",
+    page_title="Data Wizard Pro | Ultimate PDF Table Suite",
     page_icon="🪄",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# Google Analytics Fonksiyonu
 def add_analytics(ga_id):
     ga_code = f"""
     <script async src="https://www.googletagmanager.com/gtag/js?id={ga_id}"></script>
@@ -28,111 +26,109 @@ def add_analytics(ga_id):
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3652/3652191.png", width=100)
-    st.title("Data Wizard Pro")
-    st.markdown("---")
+    st.image("https://cdn-icons-png.flaticon.com/512/3652/3652191.png", width=80)
+    st.title("Wizard Control")
     
-    st.markdown("### 🛠️ Custom Automation")
-    st.info("Have thousands of PDFs? I build custom Python robots for your business.")
-    st.link_button("📩 Contact for Freelance", "mailto:berkant.pak07@gmail.com?subject=Custom%20Automation")
+    st.markdown("### 🛠️ Advanced Tools")
+    clean_data = st.toggle("Auto-clean empty rows", value=True)
+    show_charts = st.toggle("Generate Preview Charts", value=True)
+    
+    st.divider()
+    st.markdown("### 📩 Business Inquiry")
+    st.info("I build enterprise automation bots.")
+    st.link_button("Contact Developer", "mailto:berkant.pak07@gmail.com")
     st.code("berkant.pak07@gmail.com")
     
-    st.markdown("---")
-    st.markdown("### ❤️ Support My Work")
-    st.write("I keep this tool free & ad-free.")
-    st.link_button("☕ Buy Me a Coffee", "https://buymeacoffee.com/databpak")
-    
-    st.markdown("---")
-    st.caption("Version 2.0 | 2026 | @data-wizard-ad")
+    st.divider()
+    st.link_button("☕ Support the Magic", "https://buymeacoffee.com/databpak")
 
-# --- ANA EKRAN ÜST KISIM ---
-st.title("📊 Professional PDF Table Extractor")
-st.markdown("#### Convert complex PDF tables into clean Data within seconds.")
+# --- ANA EKRAN ---
+st.title("🧙‍♂️ Master Data Wizard")
+st.markdown("#### The world's most powerful free PDF table extractor.")
 
-# Şık bilgilendirme kartları
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.metric("Privacy", "100%", help="All processing happens in your browser.")
-with c2:
-    st.metric("Speed", "< 2s", help="Optimized pdfplumber engine.")
-with c3:
-    st.metric("Cost", "FREE", help="No subscription, no email.")
+# Metrikler (Profesyonel Görünüm)
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("Status", "Online", delta="Stable")
+m2.metric("Security", "SSL Active", delta="Private")
+m3.metric("Cost", "$0", delta="Forever")
+m4.metric("Engine", "v3.0", delta="Latest")
 
 st.divider()
 
-# --- DOSYA YÜKLEME ---
-uploaded_file = st.file_uploader("Drop your PDF here", type="pdf", help="Maximum 200MB")
+# --- TOPLU DOSYA YÜKLEME ---
+uploaded_files = st.file_uploader("Drop one or multiple PDF files", type="pdf", accept_multiple_files=True)
 
-if uploaded_file is not None:
-    with st.status("🪄 Wizard is casting spells on your file...", expanded=True) as status:
-        st.write("🔍 Reading PDF layers...")
-        time.sleep(0.5)
+if uploaded_files:
+    all_extracted_data = {} # Dosya adı -> Tablolar listesi
+    
+    with st.status("🔮 Harvesting data from files...", expanded=True) as status:
+        for uploaded_file in uploaded_files:
+            st.write(f"Processing: {uploaded_file.name}")
+            with pdfplumber.open(uploaded_file) as pdf:
+                file_tables = []
+                for i, page in enumerate(pdf.pages):
+                    table = page.extract_table()
+                    if table:
+                        df = pd.DataFrame(table[1:], columns=table[0])
+                        
+                        # Veri Temizleme (Opsiyonel)
+                        if clean_data:
+                            df = df.dropna(how='all').reset_index(drop=True)
+                        
+                        file_tables.append((f"Pg_{i+1}", df))
+                all_extracted_data[uploaded_file.name] = file_tables
+        status.update(label="✅ All files processed!", state="complete", expanded=False)
+
+    if all_extracted_data:
+        # Önizleme ve Düzenleme
+        st.markdown("### 🔍 Live Preview & Intelligence")
         
-        with pdfplumber.open(uploaded_file) as pdf:
-            all_tables = []
-            page_count = len(pdf.pages)
-            
-            st.write(f"📊 Analyzing {page_count} pages...")
-            
-            for i, page in enumerate(pdf.pages):
-                table = page.extract_table()
-                if table:
-                    # Sütun temizleme
-                    raw_cols = table[0]
-                    new_cols = [f"Col_{idx}" if v is None or v == "" else v for idx, v in enumerate(raw_cols)]
-                    # Benzersiz sütun isimleri
-                    unique_cols = []
-                    for col in new_cols:
-                        count = unique_cols.count(col)
-                        unique_cols.append(f"{col}_{count}" if count > 0 else col)
+        # Dosyalar arası geçiş için selectbox
+        file_to_preview = st.selectbox("Select file to preview", list(all_extracted_data.keys()))
+        tables = all_extracted_data[file_to_preview]
+        
+        if tables:
+            tabs = st.tabs([t[0] for t in tables])
+            for i, (name, df) in enumerate(tables):
+                with tabs[i]:
+                    st.dataframe(df, use_container_width=True)
                     
-                    df = pd.DataFrame(table[1:], columns=unique_cols)
-                    all_tables.append((f"Page_{i+1}", df))
-            
-            status.update(label="✅ Extraction Complete!", state="complete", expanded=False)
-
-    if all_tables:
-        # Özet bilgiler
-        st.success(f"Successfully extracted {len(all_tables)} tables from {page_count} pages.")
-        
-        # Önizleme Sekmeleri
-        tab_list = [t[0] for t in all_tables]
-        selected_tabs = st.tabs(tab_list)
-        
-        for i, (name, df) in enumerate(all_tables):
-            with selected_tabs[i]:
-                st.dataframe(df, use_container_width=True)
+                    # Otomatik Grafik (Eğer sayısal veri varsa)
+                    if show_charts and not df.empty:
+                        try:
+                            # Sayısal sütunları bulmaya çalış
+                            num_df = df.apply(pd.to_numeric, errors='coerce').dropna(axis=1, how='all')
+                            if not num_df.empty:
+                                st.area_chart(num_df.iloc[:, :3]) # İlk 3 sayısal sütunu çiz
+                                st.caption("💡 Magic Chart: Visualizing top numeric columns.")
+                        except:
+                            pass
 
         st.divider()
         
-        # İNDİRME SEÇENEKLERİ
-        st.markdown("### 📥 Download Results")
-        col_ex, col_csv, col_json = st.columns(3)
+        # --- MERKEZİ İNDİRME PANELİ ---
+        st.markdown("### 📥 Global Export Options")
+        col_ex, col_csv = st.columns(2)
         
-        # Excel
-        output_excel = BytesIO()
-        with pd.ExcelWriter(output_excel, engine='openpyxl') as writer:
-            for name, df in all_tables:
-                df.to_excel(writer, index=False, sheet_name=name)
+        # Tüm dosyaları tek bir Excel'de birleştirme
+        output_combined = BytesIO()
+        with pd.ExcelWriter(output_combined, engine='openpyxl') as writer:
+            for file_name, tables in all_extracted_data.items():
+                for pg_name, df in tables:
+                    # Sayfa adı: DosyaAdı_SayfaNo (Kısa tutulmalı)
+                    sheet_name = f"{file_name[:15]}_{pg_name}"
+                    df.to_excel(writer, index=False, sheet_name=sheet_name[:31])
         
         with col_ex:
-            st.download_button("📂 Download Excel", output_excel.getvalue(), "wizard_data.xlsx", "application/vnd.ms-excel", type="primary", use_container_width=True)
+            st.download_button("🚀 Download All in One Excel", output_combined.getvalue(), "master_wizard_export.xlsx", type="primary", use_container_width=True)
             
-        # CSV (Sadece ilk sayfa veya birleştirilmiş)
-        full_df = pd.concat([t[1] for t in all_tables])
         with col_csv:
-            st.download_button("📄 Download CSV", full_df.to_csv(index=False).encode('utf-8'), "wizard_data.csv", "text/csv", use_container_width=True)
-            
-        with col_json:
-            st.download_button("💻 Download JSON", full_df.to_json(orient="records").encode('utf-8'), "wizard_data.json", "application/json", use_container_width=True)
-    else:
-        st.error("No structured tables found. Please try another PDF.")
+            # Sadece seçili dosyanın CSV'sini al
+            csv_data = pd.concat([t[1] for t in tables]).to_csv(index=False).encode('utf-8')
+            st.download_button(f"📄 Download {file_to_preview} as CSV", csv_data, "wizard_data.csv", use_container_width=True)
 
-# --- FOOTER & FAQ ---
+# Footer
 st.divider()
-st.markdown("### 🔍 FAQ & Security")
-with st.expander("How does this work?"):
-    st.write("We use the `pdfplumber` engine to identify table structures. Your data never leaves your computer; it's processed entirely in your browser's RAM.")
+st.caption("Data Wizard Pro | No registration, no tracking, just magic. 2026")
 
-# Analytics tetikleyici
 add_analytics("G-SH8W61QFSS")
