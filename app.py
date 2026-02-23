@@ -31,24 +31,30 @@ def add_analytics(ga_id):
 
 add_analytics("G-SH8W61QFSS")
 
-# --- SIDEBAR (SOL MENÜ) GÜNCELLEMESİ ---
+# --- SIDEBAR (SOL MENÜ) ---
 with st.sidebar:
     st.title("🧙‍♂️ Data Wizard")
     st.markdown("---")
     
-    # DAHA SAĞLAM OTOMASYON BÖLÜMÜ
+    # YENİ: ÖZEL OTOMASYON HİZMETİ BÖLÜMÜ
     st.markdown("### 🛠️ Need Custom Automation?")
-    st.info("""
-        **Have thousands of PDFs?** I build custom Python scripts to automate your workflow.
+    st.warning("""
+        **Have thousands of PDFs?** I can build custom Python scripts for your specific business needs. 
     """)
-    
     # Butonun altına maili açıkça yazıyoruz
     st.link_button("📩 Get a Quote", "mailto:berkant.pak07@gmail.com?subject=Custom%20Automation%20Inquiry")
     st.caption("Or contact directly at:")
     st.code("berkant.pak07@gmail.com") # Kopyalanabilir formatta
     
     st.markdown("---")
-    # ... (Diğer sidebar kodların aynı kalabilir)
+    st.markdown("### 🌟 Why use this?")
+    st.info("No sign-up, no email collection, no hidden fees. Just clean data extraction.")
+    
+    st.markdown("### ❤️ Support the Project")
+    st.write("Help me keep this tool free for everyone.")
+    st.link_button("☕ Buy Me a Coffee", "https://buymeacoffee.com/databpak")
+    
+    st.markdown("---")
     st.caption("Developer: @data-wizard-ad")
 
 # --- ANA EKRAN VE SEO METNİ ---
@@ -125,4 +131,3 @@ with col2:
     st.write("Perfect for financial statements, invoices, and data analysis reports.")
 
 st.caption("Free Online PDF to Excel Converter | No Signup | Privacy-Focused Data Extraction Tool 2026")
-
