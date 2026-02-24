@@ -62,7 +62,7 @@ with st.sidebar:
     with st.expander("💼 İş Birliği & İletişim"):
         st.write("Projeleriniz için benimle çalışabilirsiniz!")
         st.write("📧 **Mail:** [berkant.pak07@gmail.com]") # Burayı kendi mailinle güncelle
-        st.write("🔗 **LinkedIn:https://www.linkedin.com/in/berkant-pak-a83b833a1/)
+        st.write("🔗 **LinkedIn:** [https://www.linkedin.com/in/berkant-pak-a83b833a1/]")
     
     st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak")
 
@@ -145,4 +145,3 @@ with tab2:
 # 5. FOOTER & ANALYTICS
 st.divider()
 st.caption("Data Wizard Elite | v3.9.4 | 2026")
-
