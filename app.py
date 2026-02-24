@@ -33,7 +33,7 @@ with st.sidebar:
     st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak")
 
 # --- 4. ANA PANEL ---
-st.title("🧙‍♂️ Master Veri Sihirbazı Elite v3.9.5")
+st.title("🧙‍♂️ Master Veri Sihirbazı Elite v3.9.6")
 
 tab1, tab2 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)"])
 
@@ -48,7 +48,6 @@ with tab1:
                     table = page.extract_table()
                     if table:
                         df = pd.DataFrame(table[1:], columns=table[0])
-                        # Sütun isimlerini güvenli hale getir
                         df.columns = [f"Kol_{idx}" if not c else c for idx, c in enumerate(df.columns)]
                         pages_list.append((f"Sayfa {i+1}", df))
                 all_data[f.name] = pages_list
@@ -63,23 +62,33 @@ with tab1:
                     
                     # --- GRAFİK VE ANALİZ KATMANI ---
                     if ai_insights:
-                        # Gelişmiş Sayısal Temizleme (Hücre içindeki metinleri ayıklama)
+                        # Gelişmiş Finansal Temizleme (Hatalı 150 vs 17Milyon sorunu için)
                         def clean_numeric(val):
-                            if val is None: return np.nan
-                            # Noktalama ve boşlukları temizleyip sayıya çevirmeyi dene
-                            cleaned = re.sub(r'[^\d.]', '', str(val).replace(',', '.'))
-                            try: return float(cleaned)
+                            if val is None or val == "None": return np.nan
+                            s = str(val).replace("₺", "").replace("TL", "").strip()
+                            # Sadece rakam, nokta ve virgülü tut
+                            s = re.sub(r'[^\d.,-]', '', s)
+                            if not s: return np.nan
+                            try:
+                                # TR Formatı: 17.465.770,66 -> Önce noktaları sil, sonra virgülü noktaya çevir
+                                if "." in s and "," in s:
+                                    s = s.replace(".", "").replace(",", ".")
+                                elif "," in s: # Sadece virgül varsa ondalıktır
+                                    s = s.replace(",", ".")
+                                return float(s)
                             except: return np.nan
 
                         num_df = df.applymap(clean_numeric).dropna(axis=1, how='all')
                         
                         if not num_df.empty:
-                            # En yüksek değer analizi
-                            st.info(f"✨ Sayfa Analizi: Tespit edilen en yüksek değer: {num_df.max().max()}")
+                            # En yüksek değeri bul ve binlik ayırıcı ile formatla
+                            max_val = num_df.max().max()
+                            formatted_max = "{:,.2f}".format(max_val).replace(",", "X").replace(".", ",").replace("X", ".")
+                            
+                            st.info(f"✨ **Sayfa Analizi:** Tespit edilen en yüksek değer: **{formatted_max}**")
                             
                             if show_charts:
                                 st.subheader("📈 Veri Dağılım Grafiği")
-                                # Sadece mantıklı veri içeren kolonları çiz (çok büyük veya boş olmayan)
                                 plot_df = num_df.select_dtypes(include=[np.number]).clip(lower=0)
                                 if not plot_df.empty:
                                     st.area_chart(plot_df)
