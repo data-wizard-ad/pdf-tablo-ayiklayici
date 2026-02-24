@@ -87,7 +87,8 @@ def convert_image(img_file, target_format):
     return out_img.getvalue()
 
 # SEO ve Google Analiz
-st.markdown("""<script async src="https://www.googletagmanager.com/gtag/js?id=G-SH8W61QFSS"></script>  <script>
+st.markdown("""<script async src="https://www.googletagmanager.com/gtag/js?id=G-SH8W61QFSS"></script>
+<script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
@@ -222,5 +223,6 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
