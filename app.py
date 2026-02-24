@@ -6,7 +6,13 @@ import re
 from PIL import Image
 import numpy as np
 import json
-from docx import Document  # Word desteği için
+
+# --- GÜVENLİ WORD İTHALATI (Hata almamak için) ---
+try:
+    from docx import Document
+    WORD_AVAILABLE = True
+except ImportError:
+    WORD_AVAILABLE = False
 
 # --- 1. GÜVENLİ OCR İTHALATI ---
 try:
@@ -20,48 +26,32 @@ except Exception:
 
 # --- 2. SEO VE SAYFA AYARLARI ---
 st.set_page_config(
-    page_title="Master Veri Sihirbazı Elite | Ücretsiz PDF & Word & CSV",
+    page_title="Master Veri Sihirbazı Elite | Ücretsiz PDF Tablo Okuyucu & OCR",
     page_icon="🪄",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# --- İNDİRME FONKSİYONLARI (ORGAN NAKLİ ÜNİTESİ) ---
-def to_excel(df):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False)
-    return output.getvalue()
-
-def to_csv(df):
-    return df.to_csv(index=False).encode('utf-8-sig')
-
+# --- YARDIMCI FONKSİYONLAR (Word & CSV İçin) ---
 def to_word(df):
+    if not WORD_AVAILABLE: return None
     doc = Document()
-    doc.add_heading('Data Wizard Elite - Veri Raporu', 0)
+    doc.add_heading('Data Wizard Elite Veri Raporu', 0)
     table = doc.add_table(rows=1, cols=len(df.columns))
-    hdr_cells = table.rows[0].cells
     for i, col in enumerate(df.columns):
-        hdr_cells[i].text = str(col)
-    for index, row in df.iterrows():
+        table.rows[0].cells[i].text = str(col)
+    for _, row in df.iterrows():
         row_cells = table.add_row().cells
         for i, val in enumerate(row):
             row_cells[i].text = str(val)
-    byte_io = BytesIO()
-    doc.save(byte_io)
-    return byte_io.getvalue()
+    bio = BytesIO()
+    doc.save(bio)
+    return bio.getvalue()
 
-# --- 3. GOOGLE ANALİZ (KORUNAN ALAN) ---
-st.markdown("""
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-XXXXXXXXXX');
-    </script>
-""", unsafe_allow_html=True)
+# SEO ve Google Analiz (Değişmedi)
+st.markdown("""<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>""", unsafe_allow_html=True)
 
-# --- 4. YAN MENÜ (SİDEBAR) ---
+# --- 3. YAN MENÜ (SİDEBAR) ---
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3652/3652191.png", width=70)
     st.title("Wizard Global")
@@ -72,19 +62,19 @@ with st.sidebar:
     show_charts = st.toggle("Grafik Analizini Göster", value=True)
     st.divider()
     st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak")
-    st.caption("v4.1.0 Format Master | 2026")
+    st.caption("v4.1.0 SaaS Mode | 2026")
 
-# --- 5. ÜST BİLGİ KARTLARI ---
+# --- 4. ÜST BİLGİ KARTLARI ---
 col1, col2, col3, col4 = st.columns(4)
 with col1: st.metric("İşleme", "Yerel (Edge)", "Encrypted")
 with col2: st.metric("Güvenlik", "Shield Active", "Shielded")
 with col3: st.metric("Etki", "22+ Kullanıcı", "Growing")
 with col4: st.metric("Lisans", "Open-Source", "MIT")
-
 st.divider()
 
-# --- 6. ANA PANEL ---
+# --- 5. ANA PANEL ---
 st.title("🧙‍♂️ Master Veri Sihirbazı Elite")
+st.markdown("### Ücretsiz PDF Tablo Ayıklama ve Gelişmiş OCR Aracı")
 
 tab1, tab2 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)"])
 
@@ -92,7 +82,8 @@ tab1, tab2 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)"])
 with tab1:
     pdf_files = st.file_uploader("PDF dosyalarını yükleyin", type="pdf", accept_multiple_files=True)
     if pdf_files:
-        with st.status("🔮 Sihirbaz PDF'leri okuyor...", expanded=True) as status:
+        # GÖRSEL GERİ BİLDİRİM (Yükleme Durumu)
+        with st.status("🔮 Sihirbaz dosyaları inceliyor...", expanded=False) as status:
             all_data = {}
             for f in pdf_files:
                 with pdfplumber.open(f) as pdf:
@@ -104,8 +95,8 @@ with tab1:
                             df.columns = [f"Kol_{idx}" if not c else c for idx, c in enumerate(df.columns)]
                             pages_list.append((f"Sayfa {i+1}", df))
                     all_data[f.name] = pages_list
-            status.update(label="✅ Okuma Tamamlandı!", state="complete", expanded=False)
-            st.balloons() # BAŞARI BALONLARI
+            status.update(label="✅ İşlem Tamam!", state="complete")
+            st.balloons() # Başarı Balonları
 
         if all_data:
             sel_file = st.selectbox("Dosya seçin:", list(all_data.keys()))
@@ -114,40 +105,70 @@ with tab1:
                 with pdf_tabs[i]:
                     st.dataframe(df, use_container_width=True)
                     
-                    # Analiz ve Grafik Motoru (Korunan Parça)
-                    # ... (Burada mevcut clean_fin ve grafik kodun çalışıyor) ...
-
-                    # --- ÇOKLU FORMAT İNDİRME (YENİ NAKİL) ---
-                    c1, c2, c3 = st.columns(3)
-                    with c1: st.download_button(f"📂 Excel", to_excel(df), f"{p_name}.xlsx", key=f"ex_{i}")
-                    with c2: st.download_button(f"📄 CSV", to_csv(df), f"{p_name}.csv", key=f"csv_{i}")
-                    with c3: st.download_button(f"📝 Word", to_word(df), f"{p_name}.docx", key=f"word_{i}")
+                    # Analiz Motoru (Değişmedi)
+                    def clean_fin(val):
+                        if val is None: return np.nan
+                        s = re.sub(r'[^\d.,-]', '', str(val).replace("₺","").replace("TL","").strip())
+                        try:
+                            if "." in s and "," in s: s = s.replace(".", "").replace(",", ".")
+                            elif "," in s: s = s.replace(",", ".")
+                            return float(s)
+                        except: return np.nan
+                    
+                    num_df = df.applymap(clean_fin).dropna(axis=1, how='all')
+                    if ai_insights and not num_df.empty:
+                        max_val = num_df.max().max()
+                        fmt_max = "{:,.2f}".format(max_val).replace(",", "X").replace(".", ",").replace("X", ".")
+                        st.info(f"✨ **Sayfa Analizi:** Tespit edilen en yüksek değer: **{fmt_max}**")
+                    
+                    if show_charts and not num_df.empty:
+                        st.subheader("📈 Veri Dağılım Grafiği")
+                        st.area_chart(num_df.select_dtypes(include=[np.number]))
+                    
+                    # --- ÇOKLU İNDİRME BUTONLARI ---
+                    st.divider()
+                    d_col1, d_col2, d_col3 = st.columns(3)
+                    with d_col1:
+                        out_ex = BytesIO()
+                        with pd.ExcelWriter(out_ex, engine='openpyxl') as writer: df.to_excel(writer, index=False)
+                        st.download_button("📂 Excel İndir", out_ex.getvalue(), f"{p_name}.xlsx", key=f"ex_{i}")
+                    with d_col2:
+                        st.download_button("📄 CSV İndir", df.to_csv(index=False).encode('utf-8-sig'), f"{p_name}.csv", key=f"csv_{i}")
+                    with d_col3:
+                        word_data = to_word(df)
+                        if word_data:
+                            st.download_button("📝 Word İndir", word_data, f"{p_name}.docx", key=f"word_{i}")
+                        else:
+                            st.warning("Word desteği yüklü değil.")
 
 # --- TAB 2: OCR ---
 with tab2:
     st.subheader("🖼️ Görselden Veri Ayıklama")
-    uploaded_img = st.file_uploader("Resim yükleyin", type=["jpg", "png", "jpeg"])
+    uploaded_img = st.file_uploader("Resim yükleyin (JPG, PNG)", type=["jpg", "png", "jpeg"])
     if uploaded_img:
         img = Image.open(uploaded_img)
-        st.image(img, use_container_width=True)
+        st.image(img, caption="Yüklenen Görsel", use_container_width=True)
         if st.button("🚀 Resmi Tara ve Analiz Et"):
             if OCR_AVAILABLE:
-                with st.spinner("🧠 Görüntü işleniyor, lütfen bekleyin..."):
+                with st.spinner("🧠 Zihin sarayında metinler okunuyor..."):
                     result = reader.readtext(np.array(img), detail=0)
                     ocr_df = pd.DataFrame(result, columns=["Ayıklanan Veriler"])
                     
-                    st.success("İşlem Başarılı!")
-                    
-                    st.subheader("📝 Metin ve Tablo Formatı")
-                    st.text_area("Metni Kopyala:", "\n".join(result), height=150)
+                    st.subheader("📝 Metin Formatı")
+                    st.text_area("Kopyala:", "\n".join(result), height=150)
                     st.table(ocr_df)
                     
-                    # --- OCR İÇİN ÇOKLU FORMAT (YENİ NAKİL) ---
+                    # --- OCR İNDİRME BUTONLARI (Yeni Eklendi) ---
                     st.divider()
-                    st.markdown("##### 📥 Sonuçları İndir")
-                    cx1, cx2, cx3 = st.columns(3)
-                    with cx1: st.download_button("Excel İndir", to_excel(ocr_df), "ocr_result.xlsx")
-                    with cx2: st.download_button("CSV İndir", to_csv(ocr_df), "ocr_result.csv")
-                    with cx3: st.download_button("Word İndir", to_word(ocr_df), "ocr_result.docx")
+                    o_col1, o_col2, o_col3 = st.columns(3)
+                    with o_col1:
+                        out_ocr = BytesIO()
+                        with pd.ExcelWriter(out_ocr, engine='openpyxl') as writer: ocr_df.to_excel(writer, index=False)
+                        st.download_button("Excel Olarak", out_ocr.getvalue(), "ocr.xlsx")
+                    with o_col2:
+                        st.download_button("CSV Olarak", ocr_df.to_csv(index=False).encode('utf-8-sig'), "ocr.csv")
+                    with o_col3:
+                        word_ocr = to_word(ocr_df)
+                        if word_ocr: st.download_button("Word Olarak", word_ocr, "ocr.docx")
             else:
                 st.error("OCR motoru hazır değil.")
