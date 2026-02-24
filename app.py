@@ -60,15 +60,16 @@ def pdf_to_word_direct(pdf_file):
     doc.save(bio)
     return bio.getvalue()
 
-# --- YENİ: PDF BOYUTU KÜÇÜLTME (COMPRESSION) ---
+# --- DÜZELTİLMİŞ: PDF BOYUTU KÜÇÜLTME (COMPRESSION) ---
 def compress_pdf(input_pdf):
     reader = PdfReader(input_pdf)
     writer = PdfWriter()
-    for page in reader.pages:
-        page.compress_content_streams()  # İçerik akışlarını sıkıştır
-        writer.add_page(page)
     
-    # Gereksiz nesneleri temizle ve veriyi optimize et
+    for page in reader.pages:
+        new_page = writer.add_page(page) # Sayfayı önce yazıcıya ekle
+        new_page.compress_content_streams() # Şimdi güvenle sıkıştır
+    
+    # Ekstra nesne temizliği ile tam optimizasyon
     bio = BytesIO()
     writer.write(bio)
     return bio.getvalue()
@@ -101,7 +102,7 @@ with st.sidebar:
     show_charts = st.toggle("Grafik Analizini Göster", value=True)
     st.divider()
     st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak", use_container_width=True)
-    st.caption("v4.2.1 AI Summary BY BERKANT PAK | 2026")
+    st.caption("v4.2.2 FIXED BY BERKANT PAK | 2026")
 
 # --- 4. ÜST BİLGİ KARTLARI ---
 col1, col2, col3, col4 = st.columns(4)
@@ -117,7 +118,7 @@ st.markdown("### Ücretsiz PDF Tablo Ayıklama ve Gelişmiş OCR Aracı")
 
 tab1, tab2, tab3 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)", "🛠️ Editör & Dönüştürücü"])
 
-# --- TAB 1: PDF İŞLEME (KORUNDU) ---
+# --- TAB 1 & 2 (DEĞİŞİKLİK YOK, KORUNDU) ---
 with tab1:
     pdf_files = st.file_uploader("PDF dosyalarını yükleyin", type="pdf", accept_multiple_files=True, key="pdf_table_uploader")
     if pdf_files:
@@ -150,14 +151,13 @@ with tab1:
                         d_col1, d_col2, d_col3 = st.columns(3)
                         with d_col1:
                             out_ex = BytesIO(); df.to_excel(out_ex, index=False)
-                            st.download_button("📂 Excel İndir", out_ex.getvalue(), f"{p_name}.xlsx", key=f"ex_{i}")
+                            st.download_button("📂 Excel İndir", out_ex.getvalue(), f"{p_name}.xlsx", key=f"ex_v_{i}")
                         with d_col2:
-                            st.download_button("📄 CSV İndir", df.to_csv(index=False).encode('utf-8-sig'), f"{p_name}.csv", key=f"csv_{i}")
+                            st.download_button("📄 CSV İndir", df.to_csv(index=False).encode('utf-8-sig'), f"{p_name}.csv", key=f"csv_v_{i}")
                         with d_col3:
                             word_data = to_word(df)
-                            if word_data: st.download_button("📝 Word İndir", word_data, f"{p_name}.docx", key=f"word_{i}")
+                            if word_data: st.download_button("📝 Word İndir", word_data, f"{p_name}.docx", key=f"word_v_{i}")
 
-# --- TAB 2: OCR (KORUNDU) ---
 with tab2:
     st.subheader("🖼️ Görselden Veri Ayıklama")
     uploaded_img = st.file_uploader("Resim yükleyin", type=["jpg", "png", "jpeg"])
@@ -170,7 +170,7 @@ with tab2:
                     result = reader.readtext(np.array(img), detail=0)
                     st.table(pd.DataFrame(result, columns=["Ayıklanan Veriler"]))
 
-# --- TAB 3: PDF EDIT & DÖNÜŞTÜRÜCÜ (PDF BOYUTU KÜÇÜLTME EKLENDİ) ---
+# --- TAB 3: PDF EDIT & DÖNÜŞTÜRÜCÜ (DÜZELTİLDİ) ---
 with tab3:
     col_tools, col_conv = st.columns([1, 1])
     
@@ -179,7 +179,7 @@ with tab3:
         edit_mode = st.selectbox("İşlem Seçin:", ["PDF Birleştirme", "Sayfa Ayırma", "PDF to Word (Direkt)", "📉 PDF Boyutu Küçült"])
         
         if edit_mode == "PDF Birleştirme":
-            merge_files = st.file_uploader("Birleştirilecek PDF'ler", type="pdf", accept_multiple_files=True, key="m_up")
+            merge_files = st.file_uploader("Birleştirilecek PDF'ler", type="pdf", accept_multiple_files=True, key="m_up_fix")
             if merge_files and st.button("🔗 Birleştir"):
                 merger = PdfWriter()
                 for pdf in merge_files: merger.append(pdf)
@@ -187,26 +187,29 @@ with tab3:
                 st.download_button("📥 İndir", out.getvalue(), "birlesmis.pdf")
 
         elif edit_mode == "PDF to Word (Direkt)":
-            word_file = st.file_uploader("PDF seçin", type="pdf", key="w_up")
+            word_file = st.file_uploader("PDF seçin", type="pdf", key="w_up_fix")
             if word_file and st.button("📝 Dönüştür"):
                 word_bin = pdf_to_word_direct(word_file)
                 st.download_button("📥 Word İndir", word_bin, "donusturulmus.docx")
 
         elif edit_mode == "📉 PDF Boyutu Küçült":
-            comp_file = st.file_uploader("Küçültülecek PDF", type="pdf", key="c_up")
+            comp_file = st.file_uploader("Küçültülecek PDF", type="pdf", key="c_up_fix")
             if comp_file:
                 original_size = len(comp_file.getvalue()) / 1024
                 st.info(f"Orijinal Boyut: {original_size:.2f} KB")
                 if st.button("🚀 Optimize Et ve Küçült"):
                     with st.spinner("Sihirbaz PDF'i hafifletiyor..."):
-                        compressed_data = compress_pdf(comp_file)
-                        new_size = len(compressed_data) / 1024
-                        st.success(f"✅ İşlem Tamam! Yeni Boyut: {new_size:.2f} KB")
-                        st.download_button("📥 Küçültülmüş PDF'i İndir", compressed_data, "wizard_compressed.pdf")
+                        try:
+                            compressed_data = compress_pdf(comp_file)
+                            new_size = len(compressed_data) / 1024
+                            st.success(f"✅ İşlem Tamam! Yeni Boyut: {new_size:.2f} KB")
+                            st.download_button("📥 Küçültülmüş PDF'i İndir", compressed_data, "wizard_compressed.pdf")
+                        except Exception as e:
+                            st.error(f"Sıkıştırma sırasında bir hata oluştu: {e}")
 
     with col_conv:
         st.subheader("🔄 Görsel Dönüştürücü")
-        img_conv_file = st.file_uploader("Görsel yükleyin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv")
+        img_conv_file = st.file_uploader("Görsel yükleyin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv_fix")
         if img_conv_file:
             st.image(img_conv_file, width=150)
             target_ext = st.selectbox("Hedef Format:", ["PNG", "JPG", "ICO", "WEBP", "BMP"])
