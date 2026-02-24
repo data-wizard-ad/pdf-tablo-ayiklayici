@@ -5,11 +5,11 @@ from io import BytesIO
 import re
 from PIL import Image
 import numpy as np
+import json
 
 # --- 1. GÜVENLİ OCR İTHALATI ---
 try:
     import easyocr
-    # Cache kullanarak motoru hızlandırıyoruz
     @st.cache_resource
     def load_ocr(): return easyocr.Reader(['tr', 'en'])
     reader = load_ocr()
@@ -17,27 +17,49 @@ try:
 except Exception:
     OCR_AVAILABLE = False
 
-# --- 2. SEO VE SAYFA AYARLARI ---
+# --- 2. SEO VE SAYFA AYARLARI (GELİŞTİRİLDİ) ---
 st.set_page_config(
-    page_title="Master Veri Sihirbazı Elite | Ücretsiz PDF & OCR Araçları",
+    page_title="Master Veri Sihirbazı Elite | Ücretsiz PDF Tablo Okuyucu & OCR",
     page_icon="🪄",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
         'Get Help': 'mailto:berkant@example.com',
-        'About': "# Master Veri Sihirbazı\nDijital engelleri aşıyoruz: Veriniz, gizliliğiniz, sıfır maliyet. v4.0.1"
+        'About': "# Master Veri Sihirbazı\nEn gelişmiş PDF tablo ayıklama ve OCR aracı. Gizlilik odaklı ve ücretsiz."
     }
 )
 
-# Google Analiz ve SEO Scriptleri (Geri Getirildi)
-st.markdown("""
+# Gelişmiş SEO: JSON-LD Yapılandırılmış Veri (Google için)
+schema_data = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Master Veri Sihirbazı Elite",
+    "operatingSystem": "All",
+    "applicationCategory": "BusinessApplication",
+    "description": "PDF belgelerinden tablo ayıklama, 17 Milyon TL üzeri finansal veri analizi ve resimden yazıya (OCR) dönüştürme aracı.",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "TRY"
+    }
+}
+
+# Google Analiz ve Gelişmiş SEO Etiketleri Enjeksiyonu
+st.markdown(f"""
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
+      function gtag(){{dataLayer.push(arguments);}}
       gtag('js', new Date());
       gtag('config', 'G-XXXXXXXXXX');
     </script>
+    
+    <script type="application/ld+json">
+      {json.dumps(schema_data)}
+    </script>
+    
+    <meta name="description" content="Ücretsiz PDF tablo ayıklama, OCR ve finansal veri analizi aracı. Verileriniz yerel RAM'de işlenir.">
+    <meta name="keywords" content="PDF tablo ayıklama, OCR, resimden yazıya, finansal analiz, ücretsiz veri aracı">
 """, unsafe_allow_html=True)
 
 # --- 3. YAN MENÜ (SİDEBAR) ---
@@ -56,7 +78,7 @@ with st.sidebar:
     with st.expander("💼 İş Birliği & İletişim"):
         st.write("📧 **Mail:** berkant@example.com")
     st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak")
-    st.caption("v4.0.1 Pure Logic | 2026")
+    st.caption("v4.0.2 SEO Pro | 2026")
 
 # --- 4. ÜST BİLGİ KARTLARI ---
 col1, col2, col3, col4 = st.columns(4)
@@ -69,11 +91,18 @@ st.divider()
 
 # --- 5. ANA PANEL ---
 st.title("🧙‍♂️ Master Veri Sihirbazı Elite")
-st.markdown("> **SEO Açıklama:** Türkiye'nin en gelişmiş, gizlilik odaklı ücretsiz PDF tablo ayıklama ve OCR dönüştürme aracı. 17 Milyon TL gibi finansal verileri hatasız analiz eder.")
+
+# SEO Odaklı Görünür Açıklama
+st.markdown("""
+### Ücretsiz PDF Tablo Ayıklama ve Gelişmiş OCR Aracı
+**Master Veri Sihirbazı**, karmaşık PDF dosyalarındaki tabloları ve resimlerdeki metinleri saniyeler içinde kopyalanabilir verilere dönüştürür. 
+* **Finansal Doğruluk:** 17.000.000 TL gibi büyük rakamları hatasız işler.
+* **Gizlilik:** Dosyalarınız asla buluta yüklenmez, tüm işlemler tarayıcınızda biter.
+""")
 
 tab1, tab2 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)"])
 
-# --- TAB 1: PDF İŞLEME ---
+# --- TAB 1: PDF İŞLEME (KORUNAN MANTIK) ---
 with tab1:
     pdf_files = st.file_uploader("PDF dosyalarını yükleyin", type="pdf", accept_multiple_files=True)
     if pdf_files:
@@ -96,7 +125,6 @@ with tab1:
                 with pdf_tabs[i]:
                     st.dataframe(df, use_container_width=True)
                     
-                    # --- ANALİZ MOTORU ---
                     def clean_fin(val):
                         if val is None: return np.nan
                         s = re.sub(r'[^\d.,-]', '', str(val).replace("₺","").replace("TL","").strip())
@@ -117,13 +145,12 @@ with tab1:
                         st.subheader("📈 Veri Dağılım Grafiği")
                         st.area_chart(num_df.select_dtypes(include=[np.number]))
                     
-                    # Excel İndirme Butonu (Fixlendi)
                     out = BytesIO()
                     with pd.ExcelWriter(out, engine='openpyxl') as writer:
                         df.to_excel(writer, index=False)
                     st.download_button(f"📂 {p_name} Excel İndir", out.getvalue(), f"{p_name}.xlsx", key=f"dl_{i}")
 
-# --- TAB 2: OCR ---
+# --- TAB 2: OCR (KORUNAN MANTIK) ---
 with tab2:
     st.subheader("🖼️ Görselden Veri Ayıklama")
     uploaded_img = st.file_uploader("Resim yükleyin (JPG, PNG)", type=["jpg", "png", "jpeg"])
