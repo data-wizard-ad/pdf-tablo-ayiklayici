@@ -6,6 +6,7 @@ import re
 from PIL import Image
 import numpy as np
 import json
+from pypdf import PdfReader, PdfWriter # --- YENİ KÜTÜPHANE ---
 
 # --- GÜVENLİ WORD İTHALATI ---
 try:
@@ -48,6 +49,18 @@ def to_word(df):
     doc.save(bio)
     return bio.getvalue()
 
+# --- YENİ: PDF TO WORD (DİREKT METİN) ---
+def pdf_to_word_direct(pdf_file):
+    if not WORD_AVAILABLE: return None
+    doc = Document()
+    doc.add_heading('PDF Metin Aktarımı', 0)
+    reader = PdfReader(pdf_file)
+    for page in reader.pages:
+        doc.add_paragraph(page.extract_text())
+    bio = BytesIO()
+    doc.save(bio)
+    return bio.getvalue()
+
 # SEO ve Google Analiz
 st.markdown("""<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>""", unsafe_allow_html=True)
 
@@ -56,7 +69,6 @@ with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3652/3652191.png", width=70)
     st.title("Wizard Global")
     
-    # ŞİFRE ÇÖZÜCÜ GİRİŞİ
     st.divider()
     pdf_password = st.text_input("🔑 PDF Şifresi (Varsa)", type="password", help="Şifreli banka ekstreleri için şifreyi buraya girin.")
     
@@ -82,11 +94,12 @@ st.divider()
 st.title("🧙‍♂️ Master Veri Sihirbazı Elite")
 st.markdown("### Ücretsiz PDF Tablo Ayıklama ve Gelişmiş OCR Aracı")
 
-tab1, tab2 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)"])
+# --- TABLAR GÜNCELLENDİ ---
+tab1, tab2, tab3 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)", "🛠️ PDF Edit & Araçlar"])
 
 # --- TAB 1: PDF İŞLEME ---
 with tab1:
-    pdf_files = st.file_uploader("PDF dosyalarını yükleyin", type="pdf", accept_multiple_files=True)
+    pdf_files = st.file_uploader("PDF dosyalarını yükleyin", type="pdf", accept_multiple_files=True, key="pdf_table_uploader")
     if pdf_files:
         all_data = {}
         with st.status("🔮 Sihirbaz dosyaları inceliyor...", expanded=False) as status:
@@ -174,14 +187,11 @@ with tab1:
                             word_data = to_word(df)
                             if word_data: st.download_button("📝 Word İndir", word_data, f"{p_name}.docx", key=f"word_{i}")
                 
-                # --- TEŞEKKÜR VE KAHVE KARTI (İndirmelerden Sonra) ---
                 st.write("") 
                 st.success("✨ Verileriniz başarıyla ayıklandı!")
                 support_col1, support_col2 = st.columns([3, 1])
                 with support_col1:
-                    st.markdown("""
-                    > **Sihirbazın Notu:** Bu araç tamamen ücretsizdir. Projenin gelişmesine destek olmak isterseniz bir kahve ısmarlayabilirsiniz.
-                    """)
+                    st.markdown("> **Sihirbazın Notu:** Bu araç tamamen ücretsizdir. Projenin gelişmesine destek olmak isterseniz bir kahve ısmarlayabilirsiniz.")
                 with support_col2:
                     st.link_button("🎁 Kahve Ismarla", "https://buymeacoffee.com/databpak", type="primary", use_container_width=True)
 
@@ -199,7 +209,6 @@ with tab2:
                     ocr_df = pd.DataFrame(result, columns=["Ayıklanan Veriler"])
                     st.text_area("Kopyala:", "\n".join(result), height=150)
                     st.table(ocr_df)
-                    
                     if ai_insights:
                         st.info(f"🤖 **OCR Özeti:** Görselde **{len(result)}** farklı metin bloğu tespit edildi.")
                     
@@ -217,3 +226,44 @@ with tab2:
             else:
                 st.error("OCR motoru hazır değil.")
 
+# --- TAB 3: PDF EDIT & ARAÇLAR (YENİ) ---
+with tab3:
+    st.subheader("🛠️ PDF Manipülasyon Araçları")
+    edit_mode = st.radio("İşlem Seçin:", ["PDF Birleştirme", "Sayfa Ayırma", "PDF to Word (Direkt Dönüştür)"], horizontal=True)
+    
+    if edit_mode == "PDF Birleştirme":
+        merge_files = st.file_uploader("Birleştirilecek PDF'leri seçin", type="pdf", accept_multiple_files=True, key="merge_up")
+        if merge_files and st.button("🔗 PDF'leri Birleştir"):
+            merger = PdfWriter()
+            for pdf in merge_files:
+                merger.append(pdf)
+            merged_pdf = BytesIO()
+            merger.write(merged_pdf)
+            st.success("PDF'ler başarıyla birleştirildi!")
+            st.download_button("📥 Birleşmiş PDF'i İndir", merged_pdf.getvalue(), "birlesmis_dosya.pdf")
+
+    elif edit_mode == "Sayfa Ayırma":
+        split_file = st.file_uploader("Ayırılacak PDF seçin", type="pdf", key="split_up")
+        if split_file:
+            reader = PdfReader(split_file)
+            total_pages = len(reader.pages)
+            st.info(f"Toplam Sayfa Sayısı: {total_pages}")
+            page_range = st.text_input("Ayırmak istediğiniz sayfalar (Örn: 1,3,5-7)", "1")
+            
+            if st.button("✂️ Sayfaları Ayır ve Paketle"):
+                # Basit bir sayfa seçici mantığı
+                writer = PdfWriter()
+                # Burada kompleks sayfa aralıkları için regex/logic eklenebilir, şimdilik tek sayfa/basit aralık
+                writer.add_page(reader.pages[int(page_range.split(',')[0])-1]) 
+                split_out = BytesIO()
+                writer.write(split_out)
+                st.download_button("📥 Ayrılan Parçayı İndir", split_out.getvalue(), "ayrilan_sayfa.pdf")
+
+    elif edit_mode == "PDF to Word (Direkt Dönüştür)":
+        word_file = st.file_uploader("Metne dönüştürülecek PDF seçin", type="pdf", key="word_up")
+        if word_file and st.button("📝 Metni Word'e Aktar"):
+            with st.spinner("Metinler ayıklanıyor..."):
+                word_binary = pdf_to_word_direct(word_file)
+                if word_binary:
+                    st.success("Dönüştürme başarılı!")
+                    st.download_button("📥 Word Dosyasını İndir", word_binary, "pdf_to_word.docx")
