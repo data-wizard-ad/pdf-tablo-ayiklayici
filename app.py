@@ -98,7 +98,6 @@ with tab1:
                             table = page.extract_table()
                             if table:
                                 df = pd.DataFrame(table[1:], columns=table[0])
-                                # Sütun isimlerini güvenli hale getir
                                 df.columns = [f"Kol_{idx}" if not c else str(c) for idx, c in enumerate(df.columns)]
                                 pages_list.append((f"Sayfa {i+1}", df))
                         
@@ -119,11 +118,8 @@ with tab1:
             else:
                 status.update(label="❌ Tablo Bulunamadı", state="error")
 
-        # --- KRİTİK TAMİR: Veri Varsa Görüntüle ---
         if all_data:
             sel_file = st.selectbox("Dosya seçin:", list(all_data.keys()))
-            
-            # Seçili dosyanın sayfası var mı kontrolü
             file_pages = all_data.get(sel_file, [])
             if file_pages:
                 pdf_tabs = st.tabs([t[0] for t in file_pages])
@@ -177,18 +173,17 @@ with tab1:
                         with d_col3:
                             word_data = to_word(df)
                             if word_data: st.download_button("📝 Word İndir", word_data, f"{p_name}.docx", key=f"word_{i}")
-st.write("") # Boşluk
-with st.container():
-    c1, c2 = st.columns([3, 1])
-    with c1:
-        st.markdown("""
-        > **Sihirbazın notu:** Bu araç tamamen ücretsiz ve açık kaynaklıdır. 
-        > Eğer işinize yaradıysa küçük bir destekle sunucu maliyetlerine katkıda bulunabilirsiniz! 🚀
-        """)
-    with c2:
-        st.link_button("🎁 Destek Ol & Kahve Ismarla", "https://buymeacoffee.com/databpak", type="primary", use_container_width=True)
-
-
+                
+                # --- TEŞEKKÜR VE KAHVE KARTI (İndirmelerden Sonra) ---
+                st.write("") 
+                st.success("✨ Verileriniz başarıyla ayıklandı!")
+                support_col1, support_col2 = st.columns([3, 1])
+                with support_col1:
+                    st.markdown("""
+                    > **Sihirbazın Notu:** Bu araç tamamen ücretsizdir. Projenin gelişmesine destek olmak isterseniz bir kahve ısmarlayabilirsiniz.
+                    """)
+                with support_col2:
+                    st.link_button("🎁 Kahve Ismarla", "https://buymeacoffee.com/databpak", type="primary", use_container_width=True)
 
 # --- TAB 2: OCR ---
 with tab2:
@@ -221,4 +216,3 @@ with tab2:
                         if word_ocr: st.download_button("Word Olarak", word_ocr, "ocr.docx")
             else:
                 st.error("OCR motoru hazır değil.")
-
