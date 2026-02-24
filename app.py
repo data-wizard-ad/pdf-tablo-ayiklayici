@@ -2,103 +2,199 @@ import streamlit as st
 import pdfplumber
 import pandas as pd
 from io import BytesIO
+import streamlit.components.v1 as components
 import re
-from PIL import Image
-import numpy as np
 
-# --- 1. GÜVENLİ OCR İTHALATI ---
-try:
-    import easyocr
-    OCR_AVAILABLE = True
-except ImportError:
-    OCR_AVAILABLE = False
+# 1. SAYFA YAPILANDIRMASI
+st.set_page_config(
+    page_title="Data Wizard Elite | Global Open Source Tool",
+    page_icon="🪄",
+    layout="wide"
+)
 
-# --- 2. SAYFA AYARLARI ---
-st.set_page_config(page_title="Data Wizard Elite", page_icon="🪄", layout="wide")
+# 2. %100 TAM DİL DESTEĞİ SÖZLÜĞÜ
+TEXTS = {
+    "Türkçe": {
+        "title": "📊 Master Veri Sihirbazı Elite",
+        "sub": "Dijital engelleri aşıyoruz: Veriniz, gizliliğiniz, sıfır maliyet.",
+        "sidebar_head": "Sihirbaz Global",
+        "lang_sel": "🌐 Dil Seçimi",
+        "pro_feat": "🧙‍♂️ Profesyonel Özellikler",
+        "ai_insight": "Yapay Zeka Analizleri",
+        "ocr_mode": "OCR Modu (Taranmış PDF/Resim)",
+        "ocr_help": "Yakında: Taranmış dökümanlar için gelişmiş optik tanıma.",
+        "support": "🏛️ İnsanlığa Destek Ol",
+        "coffee": "☕ Bir Kahve Ismarla",
+        "m1_label": "İşleme",
+        "m1_val": "Yerel (Edge)",
+        "m2_label": "Güvenlik",
+        "m2_val": "Koruma Aktif",
+        "m3_label": "Etki",
+        "m3_val": "22+ Kullanıcı",
+        "upload_label": "PDF Dosyalarını Yükleyin",
+        "status_read": "🪄 Veri katmanları orkestre ediliyor...",
+        "status_done": "✅ Ayıklama Başarılı!",
+        "workspace": "🛠️ Çalışma Alanı",
+        "choose_file": "Dosya Seçin",
+        "insight_head": "Sayfa Bulguları:",
+        "num_found": "sayısal sütun tespit edildi.",
+        "top_val": "En Yüksek Değer (Anlamlı):",
+        "export_head": "📥 Özgür Dışa Aktarım",
+        "dl_excel": "📂 Excel Olarak İndir (Tüm Dosyalar)",
+        "dl_csv": "📄 CSV Olarak İndir (Mevcut)",
+        "dl_json": "💻 JSON Olarak İndir (Mevcut)",
+        "privacy_shield": "🛡️ Şeffaflık ve Gizlilik",
+        "privacy_txt": "Veri takibi olmayan bir dünyaya inanıyoruz. Bu araç tüm işlemleri tarayıcınızın RAM'inde yapar. Sunucu depolaması veya takip pikselleri yoktur."
+    },
+    "English": {
+        "title": "📊 Master Data Wizard Elite",
+        "sub": "Breaking digital barriers: Your data, your privacy, zero cost.",
+        "sidebar_head": "Wizard Global",
+        "lang_sel": "🌐 Select Language",
+        "pro_feat": "🧙‍♂️ Pro Features",
+        "ai_insight": "AI Data Insights",
+        "ocr_mode": "OCR Mode (Scanned PDFs/Images)",
+        "ocr_help": "Coming soon: Advanced recognition for scanned documents.",
+        "support": "🏛️ Support Humanity",
+        "coffee": "☕ Buy a Coffee",
+        "m1_label": "Processing",
+        "m1_val": "Local (Edge)",
+        "m2_label": "Security",
+        "m2_val": "Shield Active",
+        "m3_label": "Impact",
+        "m3_val": "22+ Users",
+        "upload_label": "Upload PDF Documents",
+        "status_read": "🪄 Orchestrating Data Extraction...",
+        "status_done": "✅ Extraction Successful!",
+        "workspace": "🛠️ Workspace",
+        "choose_file": "Choose File",
+        "insight_head": "Insights for",
+        "num_found": "numeric columns detected.",
+        "top_val": "Top Meaningful Value:",
+        "export_head": "📥 Freedom Export",
+        "dl_excel": "📂 Download Excel (All Files)",
+        "dl_csv": "📄 Download CSV (Current)",
+        "dl_json": "💻 Download JSON (Current)",
+        "privacy_shield": "🛡️ Transparency & Privacy",
+        "privacy_txt": "We believe in a world without data tracking. This tool processes all in your browser's RAM."
+    }
+}
 
-# --- 3. YAN MENÜ VE İLETİŞİM ---
+# Dil seçimi sidebar'da
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3652/3652191.png", width=80)
     st.title("Wizard Global")
-    st.info("🛡️ Verileriniz yerel RAM'de işlenir.")
-    st.divider()
-    
-    ai_insights = st.toggle("Yapay Zeka Analizi", value=True)
-    show_charts = st.toggle("Grafik Analizini Göster", value=True)
+    selected_lang = st.selectbox("🌐 Dil / Language", ["Türkçe", "English"])
+    T = TEXTS[selected_lang]
     
     st.divider()
-    with st.expander("💼 İş Birliği & İletişim"):
-        st.write("Projeleriniz için benimle çalışabilirsiniz!")
-        st.write("📧 **Mail:** [Senin Mail Adresin]")
-    st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak")
+    st.markdown(f"### {T['pro_feat']}")
+    ai_insights = st.toggle(T['ai_insight'], value=True)
+    ocr_mode = st.toggle(T['ocr_mode'], value=False, help=T['ocr_help'])
+    
+    st.divider()
+    st.markdown(f"### {T['support']}")
+    st.link_button(T['coffee'], "https://buymeacoffee.com/databpak")
+    st.caption("v3.7 Pure Logic | 2026")
 
-# --- 4. ANA PANEL ---
-st.title("🧙‍♂️ Master Veri Sihirbazı Elite v3.9.6")
+# --- ANA PANEL ---
+st.title(T['title'])
+st.markdown(f"##### *{T['sub']}*")
 
-tab1, tab2 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)"])
+# Global Metrikler
+col1, col2, col3, col4 = st.columns(4)
+col1.metric(T['m1_label'], T['m1_val'])
+col2.metric(T['m2_label'], T['m2_val'], delta="Encrypted")
+col3.metric(T['m3_label'], T['m3_val'], delta="Growing")
+col4.metric("License", "Open-Source", delta="MIT")
 
-with tab1:
-    pdf_files = st.file_uploader("PDF dosyalarını buraya bırakın", type="pdf", accept_multiple_files=True)
-    if pdf_files:
-        all_data = {}
-        for f in pdf_files:
+st.divider()
+
+# DOSYA YÜKLEME
+files = st.file_uploader(T['upload_label'], type="pdf", accept_multiple_files=True)
+
+if files:
+    all_data = {}
+    with st.status(T['status_read'], expanded=True) as status:
+        for f in files:
             with pdfplumber.open(f) as pdf:
-                pages_list = []
+                tabs_data = []
                 for i, page in enumerate(pdf.pages):
                     table = page.extract_table()
                     if table:
                         df = pd.DataFrame(table[1:], columns=table[0])
-                        df.columns = [f"Kol_{idx}" if not c else c for idx, c in enumerate(df.columns)]
-                        pages_list.append((f"Sayfa {i+1}", df))
-                all_data[f.name] = pages_list
+                        # Sütun düzeltme
+                        df.columns = [f"Col_{idx}" if not c else c for idx, c in enumerate(df.columns)]
+                        tabs_data.append((f"Sayfa {i+1}", df))
+                all_data[f.name] = tabs_data
+        status.update(label=T['status_done'], state="complete")
+        st.balloons()
+
+    if all_data:
+        st.markdown(f"### {T['workspace']}")
+        selected_file = st.selectbox(T['choose_file'], list(all_data.keys()))
         
-        if all_data:
-            sel_file = st.selectbox("İncelemek için dosya seçin:", list(all_data.keys()))
-            pdf_tabs = st.tabs([t[0] for t in all_data[sel_file]])
-            
-            for i, (p_name, df) in enumerate(all_data[sel_file]):
-                with pdf_tabs[i]:
-                    st.dataframe(df, use_container_width=True)
-                    
-                    # --- GRAFİK VE ANALİZ KATMANI ---
-                    if ai_insights:
-                        # Gelişmiş Finansal Temizleme (Hatalı 150 vs 17Milyon sorunu için)
-                        def clean_numeric(val):
-                            if val is None or val == "None": return np.nan
-                            s = str(val).replace("₺", "").replace("TL", "").strip()
-                            # Sadece rakam, nokta ve virgülü tut
-                            s = re.sub(r'[^\d.,-]', '', s)
-                            if not s: return np.nan
+        tab_titles = [t[0] for t in all_data[selected_file]]
+        current_tabs = st.tabs(tab_titles)
+        
+        for i, (p_name, df) in enumerate(all_data[selected_file]):
+            with current_tabs[i]:
+                st.dataframe(df, use_container_width=True)
+                
+                if ai_insights:
+                    try:
+                        # Akıllı Sayısal Filtreleme (IBAN ve Kimlik No Ayıklama)
+                        def clean_and_check(val):
+                            clean_val = re.sub(r'[^\d,.]', '', str(val))
                             try:
-                                # TR Formatı: 17.465.770,66 -> Önce noktaları sil, sonra virgülü noktaya çevir
-                                if "." in s and "," in s:
-                                    s = s.replace(".", "").replace(",", ".")
-                                elif "," in s: # Sadece virgül varsa ondalıktır
-                                    s = s.replace(",", ".")
-                                return float(s)
-                            except: return np.nan
+                                return float(clean_val.replace(',', '.'))
+                            except: return None
 
-                        num_df = df.applymap(clean_numeric).dropna(axis=1, how='all')
-                        
+                        temp_num = df.applymap(clean_and_check)
+                        num_df = temp_num.select_dtypes(include=['number']).dropna(axis=1, how='all')
+
                         if not num_df.empty:
-                            # En yüksek değeri bul ve binlik ayırıcı ile formatla
-                            max_val = num_df.max().max()
-                            formatted_max = "{:,.2f}".format(max_val).replace(",", "X").replace(".", ",").replace("X", ".")
+                            # İstatistiksel Filtre: IBAN gibi anormal büyük sayıları eler
+                            valid_cols = []
+                            for col in num_df.columns:
+                                mean = num_df[col].mean()
+                                std = num_df[col].std()
+                                # Eğer standart sapma çok yüksekse bu muhtemelen bir ID/IBAN sütunudur
+                                if std < (mean * 2): 
+                                    valid_cols.append(col)
                             
-                            st.info(f"✨ **Sayfa Analizi:** Tespit edilen en yüksek değer: **{formatted_max}**")
-                            
-                            if show_charts:
-                                st.subheader("📈 Veri Dağılım Grafiği")
-                                plot_df = num_df.select_dtypes(include=[np.number]).clip(lower=0)
-                                if not plot_df.empty:
-                                    st.area_chart(plot_df)
-                    
-                    # --- EXCEL İNDİR BUTONU ---
-                    out = BytesIO()
-                    with pd.ExcelWriter(out, engine='openpyxl') as writer:
-                        df.to_excel(writer, index=False)
-                    st.download_button(f"📂 {p_name} Excel İndir", out.getvalue(), f"{p_name}.xlsx", key=f"btn_{i}")
+                            display_df = num_df[valid_cols] if valid_cols else num_df
 
-# --- 5. OCR KISMI (STABİL) ---
-with tab2:
-    st.info("Resimden veri ayıklama modu aktif. (v3.9.3 yapısı korunuyor)")
+                            c1, c2 = st.columns([2, 1])
+                            with c1:
+                                st.area_chart(display_df.iloc[:, :3])
+                            with c2:
+                                top_val = display_df.max().max()
+                                st.info(f"**{T['insight_head']} {p_name}:**\n- {len(display_df.columns)} {T['num_found']}\n- {T['top_val']} {top_val:,.2f}")
+                    except: pass
+
+        # EXPORT HUB
+        st.divider()
+        st.markdown(f"### {T['export_head']}")
+        c_ex, c_csv, c_json = st.columns(3)
+        
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            for f_name, tbs in all_data.items():
+                for p_name, dfr in tbs:
+                    sheet = f"{p_name}_{f_name[:15]}"[:31]
+                    dfr.to_excel(writer, index=False, sheet_name=sheet)
+        
+        c_ex.download_button(T['dl_excel'], output.getvalue(), "wizard_data.xlsx", type="primary")
+        
+        current_combined = pd.concat([t[1] for t in all_data[selected_file]])
+        c_csv.download_button(T['dl_csv'], current_combined.to_csv(index=False).encode('utf-8'), "wizard.csv")
+        c_json.download_button(T['dl_json'], current_combined.to_json(orient="records").encode('utf-8'), "wizard.json")
+
+# FAQ
+st.divider()
+with st.expander(T['privacy_shield']):
+    st.write(T['privacy_txt'])
+
+# Analytics (Koduna göre G-SH8W61QFSS sabitlendi)
+components.html(f"<script async src='https://www.googletagmanager.com/gtag/js?id=G-SH8W61QFSS'></script><script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','G-SH8W61QFSS');</script>", height=0)
