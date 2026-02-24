@@ -68,7 +68,7 @@ with st.sidebar:
     st.divider()
     st.info("💡 Bu projeyi beğendiniz mi?")
     st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak", use_container_width=True)
-    st.caption("v4.2.1 AI Summary | 2026")
+    st.caption("v4.2.1 AI Summary BY BERKANT PAK | 2026")
 
 # --- 4. ÜST BİLGİ KARTLARI ---
 col1, col2, col3, col4 = st.columns(4)
@@ -216,3 +216,4 @@ with tab2:
                         if word_ocr: st.download_button("Word Olarak", word_ocr, "ocr.docx")
             else:
                 st.error("OCR motoru hazır değil.")
+
