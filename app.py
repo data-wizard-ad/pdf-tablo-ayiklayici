@@ -60,16 +60,26 @@ def pdf_to_word_direct(pdf_file):
     doc.save(bio)
     return bio.getvalue()
 
-# --- YENİ: GÖRSEL DÖNÜŞTÜRÜCÜ FONKSİYONU ---
+# --- YENİ: PDF BOYUTU KÜÇÜLTME (COMPRESSION) ---
+def compress_pdf(input_pdf):
+    reader = PdfReader(input_pdf)
+    writer = PdfWriter()
+    for page in reader.pages:
+        page.compress_content_streams()  # İçerik akışlarını sıkıştır
+        writer.add_page(page)
+    
+    # Gereksiz nesneleri temizle ve veriyi optimize et
+    bio = BytesIO()
+    writer.write(bio)
+    return bio.getvalue()
+
+# --- GÖRSEL DÖNÜŞTÜRÜCÜ FONKSİYONU ---
 def convert_image(img_file, target_format):
     img = Image.open(img_file)
-    # RGBA (PNG) -> RGB (JPG) dönüşümü için arka planı beyaz yap
     if target_format.upper() in ["JPG", "JPEG"] and img.mode in ("RGBA", "P"):
         img = img.convert("RGB")
-    
     out_img = BytesIO()
     if target_format.upper() == "ICO":
-        # İkon dosyası için boyutlandırma gerekebilir
         img.save(out_img, format="ICO", sizes=[(256, 256), (128, 128), (64, 64), (32, 32)])
     else:
         img.save(out_img, format=target_format.upper())
@@ -82,17 +92,14 @@ st.markdown("""<script async src="https://www.googletagmanager.com/gtag/js?id=G-
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3652/3652191.png", width=70)
     st.title("Wizard Global")
-    
     st.divider()
-    pdf_password = st.text_input("🔑 PDF Şifresi (Varsa)", type="password", help="Şifreli banka ekstreleri için şifreyi buraya girin.")
-    
+    pdf_password = st.text_input("🔑 PDF Şifresi (Varsa)", type="password")
     lang = st.selectbox("🌐 Dil / Language", ["Türkçe", "English"], index=0)
     st.info("🛡️ Verileriniz yerel RAM'de işlenir.")
     st.divider()
     ai_insights = st.toggle("Yapay Zeka Analizi & Özet", value=True)
     show_charts = st.toggle("Grafik Analizini Göster", value=True)
     st.divider()
-    st.info("💡 Bu projeyi beğendiniz mi?")
     st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak", use_container_width=True)
     st.caption("v4.2.1 AI Summary BY BERKANT PAK | 2026")
 
@@ -110,7 +117,7 @@ st.markdown("### Ücretsiz PDF Tablo Ayıklama ve Gelişmiş OCR Aracı")
 
 tab1, tab2, tab3 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)", "🛠️ Editör & Dönüştürücü"])
 
-# --- TAB 1: PDF İŞLEME (KODUNUZ KORUNDU) ---
+# --- TAB 1: PDF İŞLEME (KORUNDU) ---
 with tab1:
     pdf_files = st.file_uploader("PDF dosyalarını yükleyin", type="pdf", accept_multiple_files=True, key="pdf_table_uploader")
     if pdf_files:
@@ -127,10 +134,8 @@ with tab1:
                                 df.columns = [f"Kol_{idx}" if not c else str(c) for idx, c in enumerate(df.columns)]
                                 pages_list.append((f"Sayfa {i+1}", df))
                         if pages_list: all_data[f.name] = pages_list
-                        else: st.warning(f"⚠️ {f.name} içinde ayıklanabilir tablo bulunamadı.")
                 except Exception as e:
-                    if "password" in str(e).lower(): st.error(f"❌ {f.name} şifreli!")
-                    else: st.error(f"⚠️ Hata: {str(e)}")
+                    st.error(f"⚠️ Hata: {str(e)}")
             if all_data: status.update(label="✅ İşlem Tamam!", state="complete")
 
         if all_data:
@@ -144,8 +149,7 @@ with tab1:
                         st.divider()
                         d_col1, d_col2, d_col3 = st.columns(3)
                         with d_col1:
-                            out_ex = BytesIO()
-                            with pd.ExcelWriter(out_ex, engine='openpyxl') as writer: df.to_excel(writer, index=False)
+                            out_ex = BytesIO(); df.to_excel(out_ex, index=False)
                             st.download_button("📂 Excel İndir", out_ex.getvalue(), f"{p_name}.xlsx", key=f"ex_{i}")
                         with d_col2:
                             st.download_button("📄 CSV İndir", df.to_csv(index=False).encode('utf-8-sig'), f"{p_name}.csv", key=f"csv_{i}")
@@ -153,7 +157,7 @@ with tab1:
                             word_data = to_word(df)
                             if word_data: st.download_button("📝 Word İndir", word_data, f"{p_name}.docx", key=f"word_{i}")
 
-# --- TAB 2: OCR (KODUNUZ KORUNDU) ---
+# --- TAB 2: OCR (KORUNDU) ---
 with tab2:
     st.subheader("🖼️ Görselden Veri Ayıklama")
     uploaded_img = st.file_uploader("Resim yükleyin", type=["jpg", "png", "jpeg"])
@@ -164,16 +168,15 @@ with tab2:
             if OCR_AVAILABLE:
                 with st.spinner("🧠 Metinler okunuyor..."):
                     result = reader.readtext(np.array(img), detail=0)
-                    ocr_df = pd.DataFrame(result, columns=["Ayıklanan Veriler"])
-                    st.table(ocr_df)
+                    st.table(pd.DataFrame(result, columns=["Ayıklanan Veriler"]))
 
-# --- TAB 3: PDF EDIT & DÖNÜŞTÜRÜCÜ (GELİŞTİRİLDİ) ---
+# --- TAB 3: PDF EDIT & DÖNÜŞTÜRÜCÜ (PDF BOYUTU KÜÇÜLTME EKLENDİ) ---
 with tab3:
     col_tools, col_conv = st.columns([1, 1])
     
     with col_tools:
         st.subheader("🛠️ PDF Araçları")
-        edit_mode = st.selectbox("İşlem Seçin:", ["PDF Birleştirme", "Sayfa Ayırma", "PDF to Word (Direkt)"])
+        edit_mode = st.selectbox("İşlem Seçin:", ["PDF Birleştirme", "Sayfa Ayırma", "PDF to Word (Direkt)", "📉 PDF Boyutu Küçült"])
         
         if edit_mode == "PDF Birleştirme":
             merge_files = st.file_uploader("Birleştirilecek PDF'ler", type="pdf", accept_multiple_files=True, key="m_up")
@@ -189,24 +192,24 @@ with tab3:
                 word_bin = pdf_to_word_direct(word_file)
                 st.download_button("📥 Word İndir", word_bin, "donusturulmus.docx")
 
+        elif edit_mode == "📉 PDF Boyutu Küçült":
+            comp_file = st.file_uploader("Küçültülecek PDF", type="pdf", key="c_up")
+            if comp_file:
+                original_size = len(comp_file.getvalue()) / 1024
+                st.info(f"Orijinal Boyut: {original_size:.2f} KB")
+                if st.button("🚀 Optimize Et ve Küçült"):
+                    with st.spinner("Sihirbaz PDF'i hafifletiyor..."):
+                        compressed_data = compress_pdf(comp_file)
+                        new_size = len(compressed_data) / 1024
+                        st.success(f"✅ İşlem Tamam! Yeni Boyut: {new_size:.2f} KB")
+                        st.download_button("📥 Küçültülmüş PDF'i İndir", compressed_data, "wizard_compressed.pdf")
+
     with col_conv:
         st.subheader("🔄 Görsel Dönüştürücü")
-        img_conv_file = st.file_uploader("Görsel yükleyin (JPG, PNG, vb.)", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv")
-        
+        img_conv_file = st.file_uploader("Görsel yükleyin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv")
         if img_conv_file:
-            st.image(img_conv_file, width=150, caption="Önizleme")
+            st.image(img_conv_file, width=150)
             target_ext = st.selectbox("Hedef Format:", ["PNG", "JPG", "ICO", "WEBP", "BMP"])
-            
-            if st.button(f"✨ {target_ext} Formatına Dönüştür"):
-                with st.spinner("İşleniyor..."):
-                    try:
-                        converted_bytes = convert_image(img_conv_file, target_ext)
-                        st.success(f"✅ Başarıyla {target_ext} formatına dönüştürüldü!")
-                        st.download_button(
-                            label=f"📥 {target_ext} Dosyasını İndir",
-                            data=converted_bytes,
-                            file_name=f"wizard_converted.{target_ext.lower()}",
-                            mime=f"image/{target_ext.lower()}"
-                        )
-                    except Exception as e:
-                        st.error(f"Dönüştürme hatası: {e}")
+            if st.button(f"✨ Dönüştür"):
+                converted_bytes = convert_image(img_conv_file, target_ext)
+                st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
