@@ -55,6 +55,11 @@ st.markdown("""<script async src="https://www.googletagmanager.com/gtag/js?id=G-
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3652/3652191.png", width=70)
     st.title("Wizard Global")
+    
+    # ŞİFRE ÇÖZÜCÜ GİRİŞİ (YENİ NAKİL)
+    st.divider()
+    pdf_password = st.text_input("🔑 PDF Şifresi (Varsa)", type="password", help="Şifreli banka ekstreleri için şifreyi buraya girin.")
+    
     lang = st.selectbox("🌐 Dil / Language", ["Türkçe", "English"], index=0)
     st.info("🛡️ Verileriniz yerel RAM'de işlenir.")
     st.divider()
@@ -85,17 +90,27 @@ with tab1:
         with st.status("🔮 Sihirbaz dosyaları inceliyor...", expanded=False) as status:
             all_data = {}
             for f in pdf_files:
-                with pdfplumber.open(f) as pdf:
-                    pages_list = []
-                    for i, page in enumerate(pdf.pages):
-                        table = page.extract_table()
-                        if table:
-                            df = pd.DataFrame(table[1:], columns=table[0])
-                            df.columns = [f"Kol_{idx}" if not c else c for idx, c in enumerate(df.columns)]
-                            pages_list.append((f"Sayfa {i+1}", df))
-                    all_data[f.name] = pages_list
-            status.update(label="✅ İşlem Tamam!", state="complete")
-            st.balloons()
+                try:
+                    # Şifre parametresi eklendi
+                    with pdfplumber.open(f, password=pdf_password) as pdf:
+                        pages_list = []
+                        for i, page in enumerate(pdf.pages):
+                            table = page.extract_table()
+                            if table:
+                                df = pd.DataFrame(table[1:], columns=table[0])
+                                df.columns = [f"Kol_{idx}" if not c else c for idx, c in enumerate(df.columns)]
+                                pages_list.append((f"Sayfa {i+1}", df))
+                        all_data[f.name] = pages_list
+                except Exception as e:
+                    # Şifre hatası yakalama
+                    if "password" in str(e).lower() or "authenticate" in str(e).lower():
+                        st.error(f"❌ {f.name} şifreli! Lütfen sol menüden şifreyi girin.")
+                    else:
+                        st.error(f"⚠️ Hata: {str(e)}")
+            
+            if all_data:
+                status.update(label="✅ İşlem Tamam!", state="complete")
+                st.balloons()
 
         if all_data:
             sel_file = st.selectbox("Dosya seçin:", list(all_data.keys()))
@@ -183,3 +198,4 @@ with tab2:
                     with o_col3:
                         word_ocr = to_word(ocr_df)
                         if word_ocr: st.download_button("Word Olarak", word_ocr, "ocr.docx")
+
