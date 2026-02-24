@@ -6,3 +6,4 @@ easyocr
 pillow
 numpy
 python-docx
+pypdf
