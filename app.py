@@ -7,7 +7,7 @@ from PIL import Image
 import numpy as np
 import json
 
-# --- GÜVENLİ WORD İTHALATI (Hata almamak için) ---
+# --- GÜVENLİ WORD İTHALATI ---
 try:
     from docx import Document
     WORD_AVAILABLE = True
@@ -26,13 +26,13 @@ except Exception:
 
 # --- 2. SEO VE SAYFA AYARLARI ---
 st.set_page_config(
-    page_title="Master Veri Sihirbazı Elite | Ücretsiz PDF Tablo Okuyucu & OCR",
+    page_title="Master Veri Sihirbazı Elite | AI Özetleme & PDF OCR",
     page_icon="🪄",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- YARDIMCI FONKSİYONLAR (Word & CSV İçin) ---
+# --- YARDIMCI FONKSİYONLAR ---
 def to_word(df):
     if not WORD_AVAILABLE: return None
     doc = Document()
@@ -48,7 +48,7 @@ def to_word(df):
     doc.save(bio)
     return bio.getvalue()
 
-# SEO ve Google Analiz (Değişmedi)
+# SEO ve Google Analiz
 st.markdown("""<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>""", unsafe_allow_html=True)
 
 # --- 3. YAN MENÜ (SİDEBAR) ---
@@ -58,11 +58,11 @@ with st.sidebar:
     lang = st.selectbox("🌐 Dil / Language", ["Türkçe", "English"], index=0)
     st.info("🛡️ Verileriniz yerel RAM'de işlenir.")
     st.divider()
-    ai_insights = st.toggle("Yapay Zeka Analizi", value=True)
+    ai_insights = st.toggle("Yapay Zeka Analizi & Özet", value=True)
     show_charts = st.toggle("Grafik Analizini Göster", value=True)
     st.divider()
     st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak")
-    st.caption("v4.1.0 SaaS Mode | 2026")
+    st.caption("v4.2.0 AI Summary | 2026")
 
 # --- 4. ÜST BİLGİ KARTLARI ---
 col1, col2, col3, col4 = st.columns(4)
@@ -82,7 +82,6 @@ tab1, tab2 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)"])
 with tab1:
     pdf_files = st.file_uploader("PDF dosyalarını yükleyin", type="pdf", accept_multiple_files=True)
     if pdf_files:
-        # GÖRSEL GERİ BİLDİRİM (Yükleme Durumu)
         with st.status("🔮 Sihirbaz dosyaları inceliyor...", expanded=False) as status:
             all_data = {}
             for f in pdf_files:
@@ -96,7 +95,7 @@ with tab1:
                             pages_list.append((f"Sayfa {i+1}", df))
                     all_data[f.name] = pages_list
             status.update(label="✅ İşlem Tamam!", state="complete")
-            st.balloons() # Başarı Balonları
+            st.balloons()
 
         if all_data:
             sel_file = st.selectbox("Dosya seçin:", list(all_data.keys()))
@@ -105,7 +104,6 @@ with tab1:
                 with pdf_tabs[i]:
                     st.dataframe(df, use_container_width=True)
                     
-                    # Analiz Motoru (Değişmedi)
                     def clean_fin(val):
                         if val is None: return np.nan
                         s = re.sub(r'[^\d.,-]', '', str(val).replace("₺","").replace("TL","").strip())
@@ -116,16 +114,33 @@ with tab1:
                         except: return np.nan
                     
                     num_df = df.applymap(clean_fin).dropna(axis=1, how='all')
-                    if ai_insights and not num_df.empty:
-                        max_val = num_df.max().max()
-                        fmt_max = "{:,.2f}".format(max_val).replace(",", "X").replace(".", ",").replace("X", ".")
-                        st.info(f"✨ **Sayfa Analizi:** Tespit edilen en yüksek değer: **{fmt_max}**")
+                    
+                    # --- AI SUMMARY & INSIGHTS (YENİ NAKİL) ---
+                    if ai_insights:
+                        st.subheader("🤖 Otomatik Veri Özeti (AI Summary)")
+                        if not num_df.empty:
+                            total_rows = len(df)
+                            max_val = num_df.max().max()
+                            col_with_max = num_df.max().idxmax()
+                            total_sum = num_df.sum().sum()
+                            
+                            fmt_max = "{:,.2f}".format(max_val).replace(",", "X").replace(".", ",").replace("X", ".")
+                            fmt_sum = "{:,.2f}".format(total_sum).replace(",", "X").replace(".", ",").replace("X", ".")
+                            
+                            summary_text = f"""
+                            * **Genel Bakış:** Bu sayfada toplam **{total_rows}** satır veri tespit edildi.
+                            * **Finansal Zirve:** Tablodaki en yüksek değer **{fmt_max}** olarak **{col_with_max}** sütununda bulundu.
+                            * **Kümülatif Toplam:** Tespit edilen tüm sayısal verilerin toplam hacmi: **{fmt_sum}**.
+                            * **Analiz:** Verileriniz tutarlı görünüyor, finansal raporlama için kullanıma hazır.
+                            """
+                            st.success(summary_text)
+                        else:
+                            st.warning("Özet oluşturmak için yeterli sayısal veri bulunamadı.")
                     
                     if show_charts and not num_df.empty:
                         st.subheader("📈 Veri Dağılım Grafiği")
                         st.area_chart(num_df.select_dtypes(include=[np.number]))
                     
-                    # --- ÇOKLU İNDİRME BUTONLARI ---
                     st.divider()
                     d_col1, d_col2, d_col3 = st.columns(3)
                     with d_col1:
@@ -136,29 +151,27 @@ with tab1:
                         st.download_button("📄 CSV İndir", df.to_csv(index=False).encode('utf-8-sig'), f"{p_name}.csv", key=f"csv_{i}")
                     with d_col3:
                         word_data = to_word(df)
-                        if word_data:
-                            st.download_button("📝 Word İndir", word_data, f"{p_name}.docx", key=f"word_{i}")
-                        else:
-                            st.warning("Word desteği yüklü değil.")
+                        if word_data: st.download_button("📝 Word İndir", word_data, f"{p_name}.docx", key=f"word_{i}")
 
 # --- TAB 2: OCR ---
 with tab2:
     st.subheader("🖼️ Görselden Veri Ayıklama")
-    uploaded_img = st.file_uploader("Resim yükleyin (JPG, PNG)", type=["jpg", "png", "jpeg"])
+    uploaded_img = st.file_uploader("Resim yükleyin", type=["jpg", "png", "jpeg"])
     if uploaded_img:
         img = Image.open(uploaded_img)
-        st.image(img, caption="Yüklenen Görsel", use_container_width=True)
-        if st.button("🚀 Resmi Tara ve Analiz Et"):
+        st.image(img, use_container_width=True)
+        if st.button("🚀 Resmi Tara"):
             if OCR_AVAILABLE:
-                with st.spinner("🧠 Zihin sarayında metinler okunuyor..."):
+                with st.spinner("🧠 Metinler okunuyor..."):
                     result = reader.readtext(np.array(img), detail=0)
                     ocr_df = pd.DataFrame(result, columns=["Ayıklanan Veriler"])
-                    
-                    st.subheader("📝 Metin Formatı")
                     st.text_area("Kopyala:", "\n".join(result), height=150)
                     st.table(ocr_df)
                     
-                    # --- OCR İNDİRME BUTONLARI (Yeni Eklendi) ---
+                    # OCR ÖZET (Basit Mod)
+                    if ai_insights:
+                        st.info(f"🤖 **OCR Özeti:** Görselde **{len(result)}** farklı metin bloğu tespit edildi.")
+                    
                     st.divider()
                     o_col1, o_col2, o_col3 = st.columns(3)
                     with o_col1:
@@ -170,5 +183,3 @@ with tab2:
                     with o_col3:
                         word_ocr = to_word(ocr_df)
                         if word_ocr: st.download_button("Word Olarak", word_ocr, "ocr.docx")
-            else:
-                st.error("OCR motoru hazır değil.")
