@@ -9,16 +9,25 @@ import numpy as np
 # --- 1. GÜVENLİ OCR İTHALATI ---
 try:
     import easyocr
-    # Cache kullanarak her seferinde yüklenmesini engelliyoruz
+    # Cache kullanarak motoru hızlandırıyoruz
     @st.cache_resource
     def load_ocr(): return easyocr.Reader(['tr', 'en'])
     reader = load_ocr()
     OCR_AVAILABLE = True
-except:
+except Exception:
     OCR_AVAILABLE = False
 
-# --- 2. SEO VE SAYFA YAPILANDIRMASI ---
-st.set_page_config(page_title="Master Veri Sihirbazı Elite", page_icon="🪄", layout="wide")
+# --- 2. SEO VE SAYFA AYARLARI ---
+st.set_page_config(
+    page_title="Master Veri Sihirbazı Elite | Ücretsiz PDF & OCR Araçları",
+    page_icon="🪄",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'mailto:berkant@example.com',
+        'About': "# Master Veri Sihirbazı\nDijital engelleri aşıyoruz: Veriniz, gizliliğiniz, sıfır maliyet. v4.0.1"
+    }
+)
 
 # Google Analiz ve SEO Scriptleri (Geri Getirildi)
 st.markdown("""
@@ -59,11 +68,12 @@ with col4: st.metric("Lisans", "Open-Source", "MIT")
 st.divider()
 
 # --- 5. ANA PANEL ---
-st.title("📊 Master Veri Sihirbazı Elite")
-st.caption("SEO Açıklama: Gizlilik odaklı ücretsiz PDF tablo ayıklama ve OCR aracı.")
+st.title("🧙‍♂️ Master Veri Sihirbazı Elite")
+st.markdown("> **SEO Açıklama:** Türkiye'nin en gelişmiş, gizlilik odaklı ücretsiz PDF tablo ayıklama ve OCR dönüştürme aracı. 17 Milyon TL gibi finansal verileri hatasız analiz eder.")
 
 tab1, tab2 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)"])
 
+# --- TAB 1: PDF İŞLEME ---
 with tab1:
     pdf_files = st.file_uploader("PDF dosyalarını yükleyin", type="pdf", accept_multiple_files=True)
     if pdf_files:
@@ -82,14 +92,11 @@ with tab1:
         if all_data:
             sel_file = st.selectbox("Dosya seçin:", list(all_data.keys()))
             pdf_tabs = st.tabs([t[0] for t in all_data[sel_file]])
-            
             for i, (p_name, df) in enumerate(all_data[sel_file]):
                 with pdf_tabs[i]:
-                    # 1. Tablo Gösterimi
                     st.dataframe(df, use_container_width=True)
                     
-                    # --- 2. ANALİZ VE GRAFİK MANTIĞI (DÜZELTİLDİ) ---
-                    # Finansal Temizleyici
+                    # --- ANALİZ MOTORU ---
                     def clean_fin(val):
                         if val is None: return np.nan
                         s = re.sub(r'[^\d.,-]', '', str(val).replace("₺","").replace("TL","").strip())
@@ -104,28 +111,32 @@ with tab1:
                     if ai_insights and not num_df.empty:
                         max_val = num_df.max().max()
                         fmt_max = "{:,.2f}".format(max_val).replace(",", "X").replace(".", ",").replace("X", ".")
-                        # Analiz Kutusu
                         st.info(f"✨ **Sayfa Analizi:** Tespit edilen en yüksek değer: **{fmt_max}**")
                     
                     if show_charts and not num_df.empty:
-                        # Grafik Alanı
                         st.subheader("📈 Veri Dağılım Grafiği")
                         st.area_chart(num_df.select_dtypes(include=[np.number]))
-
-                    # 3. İndir Butonu
+                    
+                    # Excel İndirme Butonu (Fixlendi)
                     out = BytesIO()
                     with pd.ExcelWriter(out, engine='openpyxl') as writer:
                         df.to_excel(writer, index=False)
                     st.download_button(f"📂 {p_name} Excel İndir", out.getvalue(), f"{p_name}.xlsx", key=f"dl_{i}")
 
+# --- TAB 2: OCR ---
 with tab2:
-    # OCR kısmı (v3.9.3 gücünde tam fonksiyonel)
-    uploaded_img = st.file_uploader("Resim yükleyin", type=["jpg", "png", "jpeg"])
+    st.subheader("🖼️ Görselden Veri Ayıklama")
+    uploaded_img = st.file_uploader("Resim yükleyin (JPG, PNG)", type=["jpg", "png", "jpeg"])
     if uploaded_img:
         img = Image.open(uploaded_img)
-        st.image(img, use_container_width=True)
-        if st.button("🚀 Resmi Tara"):
+        st.image(img, caption="Yüklenen Görsel", use_container_width=True)
+        if st.button("🚀 Resmi Tara ve Analiz Et"):
             if OCR_AVAILABLE:
-                res = reader.readtext(np.array(img), detail=0)
-                st.text_area("📝 Metin Formatı", "\n".join(res), height=200)
-                st.table(pd.DataFrame(res, columns=["Ayıklanan Veriler"]))
+                with st.spinner("Metinler ayıklanıyor..."):
+                    result = reader.readtext(np.array(img), detail=0)
+                    st.subheader("📝 Kopyalanabilir Metin Formatı")
+                    st.text_area("Metni Kopyala:", "\n".join(result), height=200)
+                    st.subheader("📊 Tablo Görünümü")
+                    st.table(pd.DataFrame(result, columns=["Ayıklanan Veriler"]))
+            else:
+                st.error("OCR motoru hazır değil.")
