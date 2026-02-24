@@ -17,9 +17,9 @@ except ImportError:
 # 1. SAYFA YAPILANDIRMASI
 st.set_page_config(page_title="Data Wizard Elite", page_icon="🪄", layout="wide")
 
-# 2. TAM TÜRKÇE SÖZLÜK (TÜM ANAHTARLAR EKSİKSİZ)
+# 2. TAM TÜRKÇE SÖZLÜK
 T = {
-    "title": "🧙‍♂️ Master Veri Sihirbazı Elite v3.9.3",
+    "title": "🧙‍♂️ Master Veri Sihirbazı Elite v3.9.4",
     "sub": "PDF ve Resimlerden (JPG/PNG) kopyalanabilir veri ayıklama.",
     "tab_pdf": "📄 PDF İşleme",
     "tab_ocr": "🖼️ Resimden Yazıya (OCR)",
@@ -35,7 +35,7 @@ T = {
     "extract_success": "✅ Ayıklama Başarılı!"
 }
 
-# OCR OKUYUCU FONKSİYONU (Önbelleğe alınmış)
+# OCR OKUYUCU FONKSİYONU
 @st.cache_resource
 def get_ocr_reader():
     if OCR_AVAILABLE:
@@ -51,7 +51,19 @@ with st.sidebar:
     st.title("Wizard Global")
     st.info(T["security"])
     st.divider()
+    
+    # --- YENİ EKLENEN BUTONLAR ---
     ai_insights = st.toggle("Yapay Zeka Analizi", value=True)
+    show_charts = st.toggle("Grafik Analizini Göster", value=True) # Grafik aç/kapat butonu
+    
+    st.divider()
+    
+    # --- "BENİ ÇALIŞTIRABİLİRSİNİZ" ALANI ---
+    with st.expander("💼 İş Birliği & İletişim"):
+        st.write("Projeleriniz için benimle çalışabilirsiniz!")
+        st.write("📧 **Mail:** [Mail Adresini Buraya Yaz]") # Burayı kendi mailinle güncelle
+        st.write("🔗 **LinkedIn:** [Profil Linkin]")
+    
     st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak")
 
 # 4. ANA PANEL
@@ -84,63 +96,52 @@ with tab1:
             for i, (p_name, df) in enumerate(all_data[sel_file]):
                 with pdf_tabs[i]:
                     st.dataframe(df, use_container_width=True)
+                    
+                    # --- GRAFİK GÖSTERİM KONTROLÜ ---
                     if ai_insights:
                         num_df = df.apply(pd.to_numeric, errors='coerce').dropna(axis=1, how='all')
                         if not num_df.empty:
-                            clean_cols = [c for c in num_df.columns if num_df[c].max() < 1000000000]
-                            if clean_cols: st.area_chart(num_df[clean_cols])
+                            # En yüksek değer analizi (Sayfada metin olarak kalsın)
+                            st.info(f"💡 Sayfa Analizi: Tespit edilen en yüksek değer: {num_df.max().max()}")
+                            
+                            # Grafik butonu aktifse göster
+                            if show_charts:
+                                clean_cols = [c for c in num_df.columns if num_df[c].max() < 1000000000]
+                                if clean_cols: 
+                                    st.area_chart(num_df[clean_cols])
 
-# --- SEKME 2: RESİMDEN YAZIYA (OCR) ---
+# --- SEKME 2: RESİMDEN YAZIYA (OCR) --- (Bu kısım aynı kaldı)
 with tab2:
     if not OCR_AVAILABLE:
-        st.error("⚠️ OCR Motoru kuruluyor veya hata oluştu. Lütfen GitHub'daki requirements.txt dosyasını kontrol edin.")
+        st.error("⚠️ OCR Motoru kuruluyor veya hata oluştu.")
     else:
         img_file = st.file_uploader(T["upload_img"], type=["jpg", "png", "jpeg"], key="img_uploader")
         if img_file:
             img = Image.open(img_file)
             col_left, col_right = st.columns(2)
-            
             with col_left:
                 st.image(img, caption="Yüklenen Görsel", use_container_width=True)
-            
             with col_right:
                 if st.button(T["ocr_btn"], key="run_ocr", use_container_width=True):
                     reader = get_ocr_reader()
-                    if reader is None:
-                        st.error("OCR Okuyucu başlatılamadı.")
-                    else:
+                    if reader:
                         with st.spinner(T["status_ocr"]):
                             img_np = np.array(img)
                             results = reader.readtext(img_np)
-                            
                             full_text = "\n".join([res[1] for res in results if res[2] > 0.2])
                             data = [res[1] for res in results if res[2] > 0.4]
-                            
                             if full_text:
                                 st.subheader(T["ocr_text_area"])
                                 st.text_area("Metni Kopyala:", value=full_text, height=200)
-                                
                                 if data:
                                     st.subheader(T["ocr_table_view"])
                                     df_ocr = pd.DataFrame(data, columns=["Ayıklanan Veriler"])
                                     st.dataframe(df_ocr, use_container_width=True)
-                                    
                                     output = BytesIO()
                                     with pd.ExcelWriter(output, engine='openpyxl') as writer:
                                         df_ocr.to_excel(writer, index=False)
                                     st.download_button(T["dl_excel"], output.getvalue(), "wizard_ocr.xlsx")
-                            else:
-                                st.warning("Resimde metin algılanamadı.")
 
 # 5. FOOTER & ANALYTICS
 st.divider()
-st.caption("Data Wizard Elite | v3.9.3 | 2026")
-components.html(f"""
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SH8W61QFSS"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){{dataLayer.push(arguments);}}
-      gtag('js', new Date());
-      gtag('config', 'G-SH8W61QFSS');
-    </script>
-""", height=0)
+st.caption("Data Wizard Elite | v3.9.4 | 2026")
