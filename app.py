@@ -66,7 +66,8 @@ with st.sidebar:
     ai_insights = st.toggle("Yapay Zeka Analizi & Özet", value=True)
     show_charts = st.toggle("Grafik Analizini Göster", value=True)
     st.divider()
-    st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak")
+    st.info("💡 Bu projeyi beğendiniz mi?")
+    st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak", use_container_width=True)
     st.caption("v4.2.1 AI Summary | 2026")
 
 # --- 4. ÜST BİLGİ KARTLARI ---
@@ -176,6 +177,18 @@ with tab1:
                         with d_col3:
                             word_data = to_word(df)
                             if word_data: st.download_button("📝 Word İndir", word_data, f"{p_name}.docx", key=f"word_{i}")
+st.write("") # Boşluk
+with st.container():
+    c1, c2 = st.columns([3, 1])
+    with c1:
+        st.markdown("""
+        > **Sihirbazın notu:** Bu araç tamamen ücretsiz ve açık kaynaklıdır. 
+        > Eğer işinize yaradıysa küçük bir destekle sunucu maliyetlerine katkıda bulunabilirsiniz! 🚀
+        """)
+    with c2:
+        st.link_button("🎁 Destek Ol & Kahve Ismarla", "https://buymeacoffee.com/databpak", type="primary", use_container_width=True)
+
+
 
 # --- TAB 2: OCR ---
 with tab2:
@@ -208,3 +221,4 @@ with tab2:
                         if word_ocr: st.download_button("Word Olarak", word_ocr, "ocr.docx")
             else:
                 st.error("OCR motoru hazır değil.")
+
