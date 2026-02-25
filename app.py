@@ -34,6 +34,20 @@ st.set_page_config(
 )
 
 # --- YARDIMCI FONKSİYONLAR ---
+
+# --- YENİ: PDF ÖN İZLEME FONKSİYONU ---
+def get_pdf_preview(pdf_file, page_no=0):
+    """Belirli bir PDF sayfasını ön izleme için görsele çevirir."""
+    try:
+        with pdfplumber.open(pdf_file) as pdf:
+            if page_no < len(pdf.pages):
+                page = pdf.pages[page_no]
+                # Sayfayı 72 DPI (standart) bir görsele çevir
+                return page.to_image(resolution=72).original
+    except:
+        return None
+    return None
+
 def to_word(df):
     if not WORD_AVAILABLE: return None
     doc = Document()
@@ -91,7 +105,6 @@ def split_pdf(input_pdf, start_page, end_page):
     writer.write(bio)
     return bio.getvalue()
 
-# --- YENİ: PDF ŞİFRELEME FONKSİYONU ---
 def encrypt_pdf(input_pdf, password):
     reader = PdfReader(input_pdf)
     writer = PdfWriter()
@@ -102,7 +115,6 @@ def encrypt_pdf(input_pdf, password):
     writer.write(bio)
     return bio.getvalue()
 
-# --- YENİ: GÖRSELLERDEN PDF OLUŞTURMA FONKSİYONU ---
 def images_to_pdf(image_files):
     img_list = []
     for img_file in image_files:
@@ -110,14 +122,12 @@ def images_to_pdf(image_files):
         if img.mode in ("RGBA", "P"):
             img = img.convert("RGB")
         img_list.append(img)
-    
     if img_list:
         bio = BytesIO()
         img_list[0].save(bio, format="PDF", save_all=True, append_images=img_list[1:])
         return bio.getvalue()
     return None
 
-# --- GÖRSEL DÖNÜŞTÜRÜCÜ FONKSİYONU ---
 def convert_image(img_file, target_format):
     img = Image.open(img_file)
     if target_format.upper() in ["JPG", "JPEG"] and img.mode in ("RGBA", "P"):
@@ -151,7 +161,7 @@ with st.sidebar:
     show_charts = st.toggle("Grafik Analizini Göster", value=True)
     st.divider()
     st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak", use_container_width=True)
-    st.caption("v4.4.0 SECURITY & PORTFOLIO | BY BERKANT PAK | 2026")
+    st.caption("v4.5.0 PREVIEW | BY BERKANT PAK | 2026")
 
 # --- 4. ÜST BİLGİ KARTLARI ---
 col1, col2, col3, col4 = st.columns(4)
@@ -163,11 +173,10 @@ st.divider()
 
 # --- 5. ANA PANEL ---
 st.title("🧙‍♂️ Master Veri Sihirbazı Elite")
-st.markdown("### Ücretsiz PDF Tablo Ayıklama ve Gelişmiş OCR Aracı")
 
 tab1, tab2, tab3 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)", "🛠️ Editör & Dönüştürücü"])
 
-# --- TAB 1 & 2 (KORUNDU) ---
+# --- TAB 1 & 2 KORUNDU ---
 with tab1:
     pdf_files = st.file_uploader("PDF dosyalarını yükleyin", type="pdf", accept_multiple_files=True, key="pdf_table_uploader")
     if pdf_files:
@@ -175,6 +184,11 @@ with tab1:
         with st.status("🔮 Sihirbaz dosyaları inceliyor...", expanded=False) as status:
             for f in pdf_files:
                 try:
+                    # Dosya yüklendiğinde bir ön izleme gösterelim
+                    img_preview = get_pdf_preview(f)
+                    if img_preview:
+                        st.image(img_preview, caption=f"{f.name} - İlk Sayfa Ön İzlemesi", width=300)
+                    
                     with pdfplumber.open(f, password=pdf_password) as pdf:
                         pages_list = []
                         for i, page in enumerate(pdf.pages):
@@ -211,41 +225,45 @@ with tab2:
     st.subheader("🖼️ Görselden Veri Ayıklama")
     uploaded_img = st.file_uploader("Resim yükleyin", type=["jpg", "png", "jpeg"])
     if uploaded_img:
-        img = Image.open(uploaded_img)
-        st.image(img, use_container_width=True)
+        st.image(uploaded_img, caption="Yüklenen Görsel", width=400) # Görsel zaten bir resim, doğrudan gösteriyoruz
         if st.button("🚀 Resmi Tara"):
             if OCR_AVAILABLE:
                 with st.spinner("🧠 Metinler okunuyor..."):
-                    result = reader.readtext(np.array(img), detail=0)
+                    result = reader.readtext(np.array(Image.open(uploaded_img)), detail=0)
                     st.table(pd.DataFrame(result, columns=["Ayıklanan Veriler"]))
 
-# --- TAB 3: PDF EDIT & DÖNÜŞTÜRÜCÜ (GELİŞTİRİLDİ) ---
+# --- TAB 3: PDF EDIT & DÖNÜŞTÜRÜCÜ (ÖN İZLEME EKLENDİ) ---
 with tab3:
     col_tools, col_conv = st.columns([1, 1])
     
     with col_tools:
         st.subheader("🛠️ PDF Araçları")
         edit_mode = st.selectbox("İşlem Seçin:", [
-            "PDF Birleştirme", 
-            "Sayfa Ayırma", 
-            "PDF Sayfalarını Döndür", 
-            "🔐 PDF Şifrele (Parola Koy)",
-            "🖼️ Görsellerden PDF Yap",
-            "PDF to Word (Direkt)", 
-            "📉 PDF Boyutu Küçült"
+            "PDF Birleştirme", "Sayfa Ayırma", "PDF Sayfalarını Döndür", 
+            "🔐 PDF Şifrele (Parola Koy)", "🖼️ Görsellerden PDF Yap",
+            "PDF to Word (Direkt)", "📉 PDF Boyutu Küçült"
         ])
         
+        # Ön izleme alanı (Her araçta dinamik olarak görünecek)
+        preview_container = st.empty()
+
         if edit_mode == "PDF Birleştirme":
             merge_files = st.file_uploader("Birleştirilecek PDF'ler", type="pdf", accept_multiple_files=True, key="m_up_fix")
-            if merge_files and st.button("🔗 Birleştir"):
-                merger = PdfWriter()
-                for pdf in merge_files: merger.append(pdf)
-                out = BytesIO(); merger.write(out)
-                st.download_button("📥 İndir", out.getvalue(), "birlesmis.pdf")
+            if merge_files:
+                st.write(f"📂 {len(merge_files)} dosya hazır.")
+                if st.button("🔗 Birleştir"):
+                    merger = PdfWriter()
+                    for pdf in merge_files: merger.append(pdf)
+                    out = BytesIO(); merger.write(out)
+                    st.download_button("📥 İndir", out.getvalue(), "birlesmis.pdf")
 
         elif edit_mode == "Sayfa Ayırma":
             split_file = st.file_uploader("PDF seçin", type="pdf", key="sp_up")
             if split_file:
+                # Ön izleme
+                img = get_pdf_preview(split_file)
+                if img: preview_container.image(img, caption="Ayırılacak PDF İlk Sayfa", width=250)
+                
                 reader_sp = PdfReader(split_file)
                 total_p = len(reader_sp.pages)
                 st.info(f"Toplam Sayfa: {total_p}")
@@ -254,51 +272,61 @@ with tab3:
                 end_p = c2.number_input("Bitiş Sayfası", min_value=1, max_value=total_p, value=total_p)
                 if st.button("✂️ Kes ve Ayır"):
                     split_bin = split_pdf(split_file, start_p, end_p)
-                    st.download_button("📥 Ayrılmış PDF'i İndir", split_bin, "ayrilmis_wizard.pdf")
+                    st.download_button("📥 Ayrılmış PDF'i İndir", split_bin, "ayrilmis.pdf")
 
         elif edit_mode == "PDF Sayfalarını Döndür":
             rot_file = st.file_uploader("PDF seçin", type="pdf", key="rot_up")
             if rot_file:
+                # Ön izleme
+                img = get_pdf_preview(rot_file)
+                if img: preview_container.image(img, caption="Döndürülecek PDF Orijinal Hali", width=250)
+                
                 angle = st.radio("Döndürme Açısı:", [90, 180, 270], horizontal=True)
                 if st.button("🔄 Döndür"):
                     rot_bin = rotate_pdf(rot_file, angle)
-                    st.download_button("📥 Döndürülmüş PDF'i İndir", rot_bin, "dondurulmus_wizard.pdf")
+                    st.download_button("📥 İndir", rot_bin, "dondurulmus.pdf")
 
         elif edit_mode == "🔐 PDF Şifrele (Parola Koy)":
             enc_file = st.file_uploader("Şifrelenecek PDF", type="pdf", key="enc_up")
-            new_pass = st.text_input("Belirlenecek Şifre", type="password", key="new_pass")
-            if enc_file and new_pass:
-                if st.button("🔒 Şifrele ve Kilitle"):
+            if enc_file:
+                img = get_pdf_preview(enc_file)
+                if img: preview_container.image(img, caption="Kilitlenecek Dosya", width=200)
+                new_pass = st.text_input("Belirlenecek Şifre", type="password")
+                if st.button("🔒 Şifrele ve Kilitle") and new_pass:
                     enc_bin = encrypt_pdf(enc_file, new_pass)
-                    st.download_button("📥 Şifreli PDF'i İndir", enc_bin, "sifreli_wizard.pdf")
+                    st.download_button("📥 İndir", enc_bin, "sifreli.pdf")
 
         elif edit_mode == "🖼️ Görsellerden PDF Yap":
-            port_files = st.file_uploader("Resimleri Seçin", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="port_up")
+            port_files = st.file_uploader("Resimleri Seçin", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
             if port_files:
-                st.write(f"{len(port_files)} görsel seçildi.")
-                if st.button("📑 PDF Portföyü Oluştur"):
+                st.image(port_files[0], caption="İlk Görsel (Kapak)", width=200)
+                if st.button("📑 PDF Yap"):
                     port_bin = images_to_pdf(port_files)
-                    if port_bin:
-                        st.download_button("📥 Portföyü İndir", port_bin, "gorsel_portfoy.pdf")
+                    st.download_button("📥 İndir", port_bin, "portfoy.pdf")
 
         elif edit_mode == "PDF to Word (Direkt)":
-            word_file = st.file_uploader("PDF seçin", type="pdf", key="w_up_fix")
-            if word_file and st.button("📝 Dönüştür"):
-                word_bin = pdf_to_word_direct(word_file)
-                st.download_button("📥 Word İndir", word_bin, "donusturulmus.docx")
+            word_file = st.file_uploader("PDF seçin", type="pdf")
+            if word_file:
+                img = get_pdf_preview(word_file)
+                if img: preview_container.image(img, width=200)
+                if st.button("📝 Dönüştür"):
+                    word_bin = pdf_to_word_direct(word_file)
+                    st.download_button("📥 Word İndir", word_bin, "converted.docx")
 
         elif edit_mode == "📉 PDF Boyutu Küçült":
-            comp_file = st.file_uploader("Küçültülecek PDF", type="pdf", key="c_up_fix")
+            comp_file = st.file_uploader("Küçültülecek PDF", type="pdf")
             if comp_file:
+                img = get_pdf_preview(comp_file)
+                if img: preview_container.image(img, width=200)
                 if st.button("🚀 Optimize Et"):
                     compressed_data = compress_pdf(comp_file)
-                    st.download_button("📥 Küçültülmüş PDF'i İndir", compressed_data, "compressed.pdf")
+                    st.download_button("📥 İndir", compressed_data, "compressed.pdf")
 
     with col_conv:
         st.subheader("🔄 Görsel Dönüştürücü")
         img_conv_file = st.file_uploader("Görsel yükleyin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv_fix")
         if img_conv_file:
-            st.image(img_conv_file, width=150)
+            st.image(img_conv_file, width=150, caption="Orijinal Görsel")
             target_ext = st.selectbox("Hedef Format:", ["PNG", "JPG", "ICO", "WEBP", "BMP"])
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
