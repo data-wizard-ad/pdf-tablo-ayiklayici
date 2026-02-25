@@ -274,7 +274,7 @@ with tab3:
         edit_mode = st.selectbox("İşlem Seçin:", [
             "PDF Birleştirme", "Sayfa Ayırma", "PDF Sayfalarını Döndür",
             "🔢 Sayfa Numarası Ekle",
-            "🚫 Filigran Kaldır (Pro)",
+            "🚫 Filigran Kaldır Pro",
             "🔄 Sayfa Sıralamasını Değiştir",
             "🗑️ Sayfa Sil / Sırala",
             "🔐 PDF Şifrele (Parola Koy)", "🖼️ Görsellerden PDF Yap",
@@ -309,7 +309,7 @@ with tab3:
                     except Exception as e:
                         st.error(f"Hata: {e}. 'reportlab' kütüphanesini kontrol edin.")
 
-         elif edit_mode == "🚫 Filigran Kaldır Pro":
+         elif edit_mode == "🚫 Filigran Kaldır Pro" :
             wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_up_pro")
             if wm_file:
                 img = get_pdf_preview(wm_file)
@@ -501,6 +501,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
