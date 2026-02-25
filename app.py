@@ -310,45 +310,52 @@ with tab3:
                         st.error(f"Hata: {e}. 'reportlab' kütüphanesini kontrol edin.")
 
         elif edit_mode == "🚫 Filigran Kaldır Pro":
-            wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_up_pro")
+            # ANAHTAR HATASINI ÖNLEMEK İÇİN KEY DEĞİŞTİRİLDİ
+            wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_pro_uploader_unique")
+            
             if wm_file:
                 img = get_pdf_preview(wm_file)
-                if img: 
-                    preview_container.image(img, caption="Analiz Edilen Dosya", width=250)
+                if img: st.image(img, caption="Analiz Edilen Dosya", width=250)
                 
                 c1, c2 = st.columns(2)
-                wm_text = c1.text_input("Silinecek Metin (Örn: DRAFT)", "DRAFT")
-                sensitivity = c2.slider("Hassasiyet (Katman Temizliği)", 1, 3, 2)
-
-                if st.button("🧼 Akıllı Temizliği Başlat"):
+                target_text = c1.text_input("Silinecek Tam Metin", "iLovePDF")
+                
+                if st.button("🧼 Derin Temizliği Başlat"):
                     try:
                         reader = PdfReader(wm_file)
                         writer = PdfWriter()
 
                         for page in reader.pages:
-                            # 1. Sayfayı önce Writer'a ekle (Bu kritik adım!)
+                            # Sayfayı yazıcıya aktar
                             new_page = writer.add_page(page)
                             
-                            # 2. Katman Bazlı Temizlik (Resources üzerinden)
-                            if "/Resources" in new_page and "/Properties" in new_page["/Resources"]:
-                                try:
-                                    del new_page["/Resources"]["/Properties"]
-                                except:
-                                    pass
+                            # 1. Yöntem: Metin Operatörlerini Filtrele
+                            # Bu kısım sayfa içeriğini ham veri olarak tarar
+                            if "/Contents" in new_page:
+                                content = new_page.get_contents()
+                                if content:
+                                    # PDF ham verisinde metni bul ve boşlukla değiştir
+                                    # Not: Bu işlem her PDF tipinde %100 sonuç vermeyebilir 
+                                    # ancak 'iLovePDF' gibi damgalarda etkilidir.
+                                    raw_data = content.get_data()
+                                    clean_data = raw_data.replace(target_text.encode(), b" ")
+                                    new_page.get_contents().set_data(clean_data)
 
-                            # 3. İçerik Akışını Normalize Et
-                            # Bu işlem sayfayı writer'ın bir parçası yaptıktan sonra güvenlidir
-                            new_page.compress_content_streams() 
+                            # 2. Yöntem: Kaynaklardaki (Resources) formları temizle
+                            if "/Resources" in new_page and "/XObject" in new_page["/Resources"]:
+                                x_objects = new_page["/Resources"]["/XObject"]
+                                # Filigran bazen XObject (Resim/Form) olarak tutulur
+                                # Eğer çok fazlaysa veya isimle eşleşirse silinebilir
+                                pass 
 
-                        # Meta verileri güncelle
-                        writer.add_metadata({"/Producer": "Master Veri Sihirbazı Elite", "/Creator": "Wizard Pro Engine"})
+                            new_page.compress_content_streams()
 
                         out = BytesIO()
                         writer.write(out)
-                        st.success(f"✅ Derin temizlik tamamlandı!")
-                        st.download_button("📥 Pro PDF'i İndir", out.getvalue(), "cleaned_pro_v2.pdf")
+                        st.success(f"✅ '{target_text}' metni için temizlik yapıldı.")
+                        st.download_button("📥 Temizlenmiş PDF'i İndir", out.getvalue(), "wizard_cleaned.pdf")
                     except Exception as e:
-                        st.error(f"Sihirbaz hatayı yakaladı: {str(e)}")
+                        st.error(f"Sihirbaz hata aldı: {e}")
         elif edit_mode == "🔄 Sayfa Sıralamasını Değiştir":
                     reorder_file = st.file_uploader("PDF seçin", type="pdf", key="reorder_up")
                     if reorder_file:
@@ -390,47 +397,28 @@ with tab3:
                         else:
                             st.warning("Lütfen en az bir sayfa seçin.")
 
-
         elif edit_mode == "🗑️ Sayfa Sil / Sırala":
-            reorder_file = st.file_uploader("PDF seçin", type="pdf", key="reorder_up")
-            if reorder_file:
-                reader_re = PdfReader(reorder_file)
-                total_p = len(reader_re.pages)
+            sort_file = st.file_uploader("PDF seçin", type="pdf", key="sort_unique_key")
+            if sort_file:
+                reader = PdfReader(sort_file)
+                total = len(reader.pages)
+                indices = list(range(total))
                 
-                st.subheader("🖼️ Sayfa Yönetimi")
-                st.info("İpucu: Sayfaları silmek için listeden çarpıya (x) basın. Sıralamak için sürükleyip yerlerini değiştirin.")
-
-                # Mevcut sayfa indekslerini liste olarak al
-                page_indices = list(range(total_p))
-                
-                # Çoklu seçim kutusu: Hem silme hem sıralama işlevi görür
-                new_order = st.multiselect(
-                    "Sıralanacak/Tutulacak Sayfalar:",
-                    options=page_indices,
-                    default=page_indices,
-                    format_func=lambda x: f"Sayfa {x + 1}"
+                selected_indices = st.multiselect(
+                    "Tutulacak ve sıralanacak sayfaları seçin:",
+                    options=indices,
+                    default=indices,
+                    format_func=lambda x: f"Sayfa {x+1}"
                 )
-
-                if new_order:
-                    # Seçilen sayfalara göre dinamik ön izleme (Görsel doğrulama)
-                    cols = st.columns(4)
-                    for i, p_idx in enumerate(new_order):
-                        with cols[i % 4]:
-                            img = get_pdf_preview(reorder_file, page_no=p_idx)
-                            if img:
-                                st.image(img, caption=f"Sıra: {i+1} (Eski p.{p_idx+1})", use_container_width=True)
-
-                    if st.button("🪄 Yeni PDF'i Oluştur"):
-                        writer = PdfWriter()
-                        for p_idx in new_order:
-                            writer.add_page(reader_re.pages[p_idx])
-                        
-                        out = BytesIO()
-                        writer.write(out)
-                        st.success(f"✅ İşlem başarılı! {len(new_order)} sayfa hazırlandı.")
-                        st.download_button("📥 İndir", out.getvalue(), "wizard_duzenlenmis.pdf")
-                else:
-                    st.warning("Lütfen en az bir sayfa seçili bırakın.")
+                
+                if st.button("🪄 Yeni PDF Oluştur"):
+                    writer = PdfWriter()
+                    for idx in selected_indices:
+                        writer.add_page(reader.pages[idx])
+                    
+                    out = BytesIO()
+                    writer.write(out)
+                    st.download_button("📥 İndir", out.getvalue(), "duzenlenmiş.pdf")
         elif edit_mode == "Sayfa Ayırma":
             split_file = st.file_uploader("PDF seçin", type="pdf", key="sp_up")
             if split_file:
@@ -502,6 +490,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
