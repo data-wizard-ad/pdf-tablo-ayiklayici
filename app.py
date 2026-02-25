@@ -309,11 +309,12 @@ with tab3:
                     except Exception as e:
                         st.error(f"Hata: {e}. 'reportlab' kütüphanesini kontrol edin.")
 
-         elif edit_mode == "🚫 Filigran Kaldır Pro" :
+        elif edit_mode == "🚫 Filigran Kaldır Pro":
             wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_up_pro")
             if wm_file:
                 img = get_pdf_preview(wm_file)
-                if img: preview_container.image(img, caption="Analiz Edilen Dosya", width=250)
+                if img: 
+                    preview_container.image(img, caption="Analiz Edilen Dosya", width=250)
                 
                 c1, c2 = st.columns(2)
                 wm_text = c1.text_input("Silinecek Metin (Örn: DRAFT)", "DRAFT")
@@ -324,22 +325,17 @@ with tab3:
                         reader = PdfReader(wm_file)
                         writer = PdfWriter()
 
-                        # Profesyonel Temizlik Fonksiyonu
                         for page in reader.pages:
-                            # 1. Katman Bazlı Temizlik (OCG)
+                            # 1. Katman Bazlı Temizlik
                             if "/Resources" in page and "/Properties" in page["/Resources"]:
                                 del page["/Resources"]["/Properties"]
 
-                            # 2. Metin İçerik Akışını Düzenleme (Regex ile Metin Silme)
+                            # 2. İçerik Akışını Düzenleme
                             if "/Contents" in page:
-                                content = page.get_contents()
-                                # PDF operatörleri arasında arama yaparak metni boşluğa çevirir
-                                # Bu kısım metin tabanlı filigranları 'görünmez' kılar
-                                page.compress_content_streams() # Önce sıkıştırarak yapıyı standartlaştır
+                                page.compress_content_streams() 
 
                             writer.add_page(page)
 
-                        # Meta verilerdeki 'Watermark' izlerini sil
                         writer.add_metadata({"/Producer": "Master Veri Sihirbazı Elite", "/Creator": "Wizard Pro Engine"})
 
                         out = BytesIO()
@@ -501,6 +497,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
