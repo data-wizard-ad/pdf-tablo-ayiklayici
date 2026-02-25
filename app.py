@@ -367,16 +367,6 @@ with tab3:
                     compressed_data = compress_pdf(comp_file)
                     st.download_button("📥 İndir", compressed_data, "compressed.pdf")
 
-    # --- SAĞ KOLON: GÖRSEL DÖNÜŞTÜRÜCÜ ---
-    with col_conv:
-        st.subheader("🔄 Görsel Dönüştürücü")
-        img_conv_file = st.file_uploader("Görsel yükleyin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv_fix")
-        if img_conv_file:
-            st.image(img_conv_file, width=150, caption="Orijinal Görsel")
-            target_ext = st.selectbox("Hedef Format:", ["PNG", "JPG", "ICO", "WEBP", "BMP"])
-            if st.button(f"✨ Dönüştür"):
-                converted_bytes = convert_image(img_conv_file, target_ext)
-                st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
 
     with col_conv:
         st.subheader("🔄 Görsel Dönüştürücü")
@@ -387,5 +377,6 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
