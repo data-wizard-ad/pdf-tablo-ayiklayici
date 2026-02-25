@@ -76,6 +76,39 @@ def pdf_to_word_direct(pdf_file):
 
 # --- MANİPÜLASYON FONKSİYONLARI ---
 
+def add_page_numbers(input_pdf):
+    """PDF sayfalarının sağ altına otomatik sayfa numarası ekler."""
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import letter
+    
+    reader = PdfReader(input_pdf)
+    writer = PdfWriter()
+    
+    for i in range(len(reader.pages)):
+        # Sayfa boyutlarını al
+        page = reader.pages[i]
+        width = float(page.mediabox.width)
+        height = float(page.mediabox.height)
+        
+        # Geçici bir PDF oluştur (sadece numara içeren)
+        packet = BytesIO()
+        can = canvas.Canvas(packet, pagesize=(width, height))
+        # Sağ alt köşeye numara yaz (Kenardan 30 birim içerde)
+        can.setFont("Helvetica", 10)
+        can.drawString(width - 50, 30, f"{i + 1}")
+        can.save()
+        
+        packet.seek(0)
+        num_pdf = PdfReader(packet)
+        
+        # Numarayı orijinal sayfayla birleştir
+        page.merge_page(num_pdf.pages[0])
+        writer.add_page(page)
+        
+    bio = BytesIO()
+    writer.write(bio)
+    return bio.getvalue()
+
 def compress_pdf(input_pdf):
     reader = PdfReader(input_pdf)
     writer = PdfWriter()
@@ -239,7 +272,8 @@ with tab3:
     with col_tools:
         st.subheader("🛠️ PDF Araçları")
         edit_mode = st.selectbox("İşlem Seçin:", [
-            "PDF Birleştirme", "Sayfa Ayırma", "PDF Sayfalarını Döndür", 
+            "PDF Birleştirme", "Sayfa Ayırma", "PDF Sayfalarını Döndür",
+            "🔢 Sayfa Numarası Ekle", # <--- Yeni
             "🔐 PDF Şifrele (Parola Koy)", "🖼️ Görsellerden PDF Yap",
             "PDF to Word (Direkt)", "📉 PDF Boyutu Küçült"
         ])
@@ -257,6 +291,23 @@ with tab3:
                     out = BytesIO(); merger.write(out)
                     st.download_button("📥 İndir", out.getvalue(), "birlesmis.pdf")
 
+
+        elif edit_mode == "🔢 Sayfa Numarası Ekle":
+    num_file = st.file_uploader("Numara eklenecek PDF", type="pdf", key="num_up")
+    if num_file:
+        # Ön izleme göster
+        img = get_pdf_preview(num_file)
+        if img: preview_container.image(img, caption="İşlem Öncesi Görünüm", width=250)
+        
+        st.info("Numaralar otomatik olarak sayfanın sağ alt köşesine eklenecektir.")
+        if st.button("🔢 Numaraları Bas ve Hazırla"):
+            try:
+                with st.spinner("Sihirbaz sayfaları mühürlüyor..."):
+                    numbered_pdf = add_page_numbers(num_file)
+                    st.success("✅ Tüm sayfalar numaralandırıldı!")
+                    st.download_button("📥 Numaralı PDF'i İndir", numbered_pdf, "wizard_numbered.pdf")
+            except Exception as e:
+                st.error(f"Bir hata oluştu: {e}. 'reportlab' kütüphanesinin yüklü olduğundan emin olun.")
         elif edit_mode == "Sayfa Ayırma":
             split_file = st.file_uploader("PDF seçin", type="pdf", key="sp_up")
             if split_file:
@@ -331,3 +382,4 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
