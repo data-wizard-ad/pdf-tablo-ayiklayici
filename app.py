@@ -275,6 +275,7 @@ with tab3:
             "PDF Birleştirme", "Sayfa Ayırma", "PDF Sayfalarını Döndür",
             "🔢 Sayfa Numarası Ekle",
             "🔄 Sayfa Sıralamasını Değiştir",
+            "🗑️ Sayfa Sil / Sırala",
             "🔐 PDF Şifrele (Parola Koy)", "🖼️ Görsellerden PDF Yap",
             "PDF to Word (Direkt)", "📉 PDF Boyutu Küçült"
         ])
@@ -346,6 +347,48 @@ with tab3:
                                 st.download_button("📥 Sıralanmış PDF'i İndir", out.getvalue(), "reordered.pdf")
                         else:
                             st.warning("Lütfen en az bir sayfa seçin.")
+
+
+        elif edit_mode == "🗑️ Sayfa Sil / Sırala":
+            reorder_file = st.file_uploader("PDF seçin", type="pdf", key="reorder_up")
+            if reorder_file:
+                reader_re = PdfReader(reorder_file)
+                total_p = len(reader_re.pages)
+                
+                st.subheader("🖼️ Sayfa Yönetimi")
+                st.info("İpucu: Sayfaları silmek için listeden çarpıya (x) basın. Sıralamak için sürükleyip yerlerini değiştirin.")
+
+                # Mevcut sayfa indekslerini liste olarak al
+                page_indices = list(range(total_p))
+                
+                # Çoklu seçim kutusu: Hem silme hem sıralama işlevi görür
+                new_order = st.multiselect(
+                    "Sıralanacak/Tutulacak Sayfalar:",
+                    options=page_indices,
+                    default=page_indices,
+                    format_func=lambda x: f"Sayfa {x + 1}"
+                )
+
+                if new_order:
+                    # Seçilen sayfalara göre dinamik ön izleme (Görsel doğrulama)
+                    cols = st.columns(4)
+                    for i, p_idx in enumerate(new_order):
+                        with cols[i % 4]:
+                            img = get_pdf_preview(reorder_file, page_no=p_idx)
+                            if img:
+                                st.image(img, caption=f"Sıra: {i+1} (Eski p.{p_idx+1})", use_container_width=True)
+
+                    if st.button("🪄 Yeni PDF'i Oluştur"):
+                        writer = PdfWriter()
+                        for p_idx in new_order:
+                            writer.add_page(reader_re.pages[p_idx])
+                        
+                        out = BytesIO()
+                        writer.write(out)
+                        st.success(f"✅ İşlem başarılı! {len(new_order)} sayfa hazırlandı.")
+                        st.download_button("📥 İndir", out.getvalue(), "wizard_duzenlenmis.pdf")
+                else:
+                    st.warning("Lütfen en az bir sayfa seçili bırakın.")
         elif edit_mode == "Sayfa Ayırma":
             split_file = st.file_uploader("PDF seçin", type="pdf", key="sp_up")
             if split_file:
@@ -417,6 +460,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
