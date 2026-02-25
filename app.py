@@ -274,7 +274,7 @@ with tab3:
         edit_mode = st.selectbox("İşlem Seçin:", [
             "PDF Birleştirme", "Sayfa Ayırma", "PDF Sayfalarını Döndür",
             "🔢 Sayfa Numarası Ekle",
-            🔄 Sayfa Sıralamasını Değiştir,
+            "🔄 Sayfa Sıralamasını Değiştir",
             "🔐 PDF Şifrele (Parola Koy)", "🖼️ Görsellerden PDF Yap",
             "PDF to Word (Direkt)", "📉 PDF Boyutu Küçült"
         ])
@@ -417,6 +417,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
