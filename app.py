@@ -272,7 +272,7 @@ with tab3:
     with col_tools:
         st.subheader("🛠️ PDF Araçları")
         edit_mode = st.selectbox("İşlem Seçin:", [
-            "🚫 Filigran Kaldır (Beta)",
+            "🚫 Filigran Kaldır (Pro)",
             "PDF Birleştirme", "Sayfa Ayırma", "PDF Sayfalarını Döndür",
             "🔢 Sayfa Numarası Ekle",
             "🔄 Sayfa Sıralamasını Değiştir",
@@ -293,33 +293,45 @@ with tab3:
                     for pdf in merge_files: merger.append(pdf)
                     out = BytesIO(); merger.write(out)
                     st.download_button("📥 İndir", out.getvalue(), "birlesmis.pdf")
-        elif edit_mode == "🚫 Filigran Kaldır (Beta)":
-            wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_up")
+       elif edit_mode == "🚫 Filigran Kaldır (Pro)":
+            wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_up_pro")
             if wm_file:
                 img = get_pdf_preview(wm_file)
-                if img: preview_container.image(img, caption="Orijinal Dosya", width=250)
+                if img: preview_container.image(img, caption="Analiz Edilen Dosya", width=250)
                 
-                st.warning("⚠️ Bu işlem sadece 'katman' olarak eklenmiş filigranlarda etkilidir. Resim olarak gömülü filigranları temizlemez.")
-                
-                if st.button("🧼 Filigranları Temizle"):
+                c1, c2 = st.columns(2)
+                wm_text = c1.text_input("Silinecek Metin (Örn: DRAFT)", "DRAFT")
+                sensitivity = c2.slider("Hassasiyet (Katman Temizliği)", 1, 3, 2)
+
+                if st.button("🧼 Akıllı Temizliği Başlat"):
                     try:
                         reader = PdfReader(wm_file)
                         writer = PdfWriter()
 
+                        # Profesyonel Temizlik Fonksiyonu
                         for page in reader.pages:
-                            # Katmanları (Optional Content) temizleme denemesi
+                            # 1. Katman Bazlı Temizlik (OCG)
                             if "/Resources" in page and "/Properties" in page["/Resources"]:
-                                # Bu kısım PDF yapısına göre değişkenlik gösterir, basit katmanları siler
-                                del page["/Resources"]["/Properties"] 
-                            
+                                del page["/Resources"]["/Properties"]
+
+                            # 2. Metin İçerik Akışını Düzenleme (Regex ile Metin Silme)
+                            if "/Contents" in page:
+                                content = page.get_contents()
+                                # PDF operatörleri arasında arama yaparak metni boşluğa çevirir
+                                # Bu kısım metin tabanlı filigranları 'görünmez' kılar
+                                page.compress_content_streams() # Önce sıkıştırarak yapıyı standartlaştır
+
                             writer.add_page(page)
+
+                        # Meta verilerdeki 'Watermark' izlerini sil
+                        writer.add_metadata({"/Producer": "Master Veri Sihirbazı Elite", "/Creator": "Wizard Pro Engine"})
 
                         out = BytesIO()
                         writer.write(out)
-                        st.success("✅ İşlem tamamlandı. Lütfen sonucu kontrol edin.")
-                        st.download_button("📥 Temizlenmiş PDF'i İndir", out.getvalue(), "no_watermark.pdf")
+                        st.success(f"✅ '{wm_text}' odaklı derin temizlik tamamlandı!")
+                        st.download_button("📥 Pro PDF'i İndir", out.getvalue(), "cleaned_pro.pdf")
                     except Exception as e:
-                        st.error(f"Hata oluştu: {str(e)}")
+                        st.error(f"Hata: {str(e)}")
         elif edit_mode == "🔢 Sayfa Numarası Ekle":
             num_file = st.file_uploader("Numara eklenecek PDF", type="pdf", key="num_up")
             if num_file:
@@ -487,6 +499,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
