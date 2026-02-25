@@ -85,12 +85,37 @@ def rotate_pdf(input_pdf, rotation_angle):
 def split_pdf(input_pdf, start_page, end_page):
     reader = PdfReader(input_pdf)
     writer = PdfWriter()
-    # Kullanıcı 1-tabanlı girdi veriyor, biz 0-tabanlı kullanıyoruz
     for i in range(start_page - 1, min(end_page, len(reader.pages))):
         writer.add_page(reader.pages[i])
     bio = BytesIO()
     writer.write(bio)
     return bio.getvalue()
+
+# --- YENİ: PDF ŞİFRELEME FONKSİYONU ---
+def encrypt_pdf(input_pdf, password):
+    reader = PdfReader(input_pdf)
+    writer = PdfWriter()
+    for page in reader.pages:
+        writer.add_page(page)
+    writer.encrypt(password)
+    bio = BytesIO()
+    writer.write(bio)
+    return bio.getvalue()
+
+# --- YENİ: GÖRSELLERDEN PDF OLUŞTURMA FONKSİYONU ---
+def images_to_pdf(image_files):
+    img_list = []
+    for img_file in image_files:
+        img = Image.open(img_file)
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        img_list.append(img)
+    
+    if img_list:
+        bio = BytesIO()
+        img_list[0].save(bio, format="PDF", save_all=True, append_images=img_list[1:])
+        return bio.getvalue()
+    return None
 
 # --- GÖRSEL DÖNÜŞTÜRÜCÜ FONKSİYONU ---
 def convert_image(img_file, target_format):
@@ -126,7 +151,7 @@ with st.sidebar:
     show_charts = st.toggle("Grafik Analizini Göster", value=True)
     st.divider()
     st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak", use_container_width=True)
-    st.caption("v4.3.0 MANIPULATION | BY BERKANT PAK | 2026")
+    st.caption("v4.4.0 SECURITY & PORTFOLIO | BY BERKANT PAK | 2026")
 
 # --- 4. ÜST BİLGİ KARTLARI ---
 col1, col2, col3, col4 = st.columns(4)
@@ -200,7 +225,15 @@ with tab3:
     
     with col_tools:
         st.subheader("🛠️ PDF Araçları")
-        edit_mode = st.selectbox("İşlem Seçin:", ["PDF Birleştirme", "Sayfa Ayırma", "PDF Sayfalarını Döndür", "PDF to Word (Direkt)", "📉 PDF Boyutu Küçült"])
+        edit_mode = st.selectbox("İşlem Seçin:", [
+            "PDF Birleştirme", 
+            "Sayfa Ayırma", 
+            "PDF Sayfalarını Döndür", 
+            "🔐 PDF Şifrele (Parola Koy)",
+            "🖼️ Görsellerden PDF Yap",
+            "PDF to Word (Direkt)", 
+            "📉 PDF Boyutu Küçült"
+        ])
         
         if edit_mode == "PDF Birleştirme":
             merge_files = st.file_uploader("Birleştirilecek PDF'ler", type="pdf", accept_multiple_files=True, key="m_up_fix")
@@ -231,6 +264,23 @@ with tab3:
                     rot_bin = rotate_pdf(rot_file, angle)
                     st.download_button("📥 Döndürülmüş PDF'i İndir", rot_bin, "dondurulmus_wizard.pdf")
 
+        elif edit_mode == "🔐 PDF Şifrele (Parola Koy)":
+            enc_file = st.file_uploader("Şifrelenecek PDF", type="pdf", key="enc_up")
+            new_pass = st.text_input("Belirlenecek Şifre", type="password", key="new_pass")
+            if enc_file and new_pass:
+                if st.button("🔒 Şifrele ve Kilitle"):
+                    enc_bin = encrypt_pdf(enc_file, new_pass)
+                    st.download_button("📥 Şifreli PDF'i İndir", enc_bin, "sifreli_wizard.pdf")
+
+        elif edit_mode == "🖼️ Görsellerden PDF Yap":
+            port_files = st.file_uploader("Resimleri Seçin", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="port_up")
+            if port_files:
+                st.write(f"{len(port_files)} görsel seçildi.")
+                if st.button("📑 PDF Portföyü Oluştur"):
+                    port_bin = images_to_pdf(port_files)
+                    if port_bin:
+                        st.download_button("📥 Portföyü İndir", port_bin, "gorsel_portfoy.pdf")
+
         elif edit_mode == "PDF to Word (Direkt)":
             word_file = st.file_uploader("PDF seçin", type="pdf", key="w_up_fix")
             if word_file and st.button("📝 Dönüştür"):
@@ -247,7 +297,6 @@ with tab3:
     with col_conv:
         st.subheader("🔄 Görsel Dönüştürücü")
         img_conv_file = st.file_uploader("Görsel yükleyin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv_fix")
-                # ... (Görsel dönüştürücü kodunun devamı aynı)
         if img_conv_file:
             st.image(img_conv_file, width=150)
             target_ext = st.selectbox("Hedef Format:", ["PNG", "JPG", "ICO", "WEBP", "BMP"])
