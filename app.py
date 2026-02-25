@@ -60,16 +60,34 @@ def pdf_to_word_direct(pdf_file):
     doc.save(bio)
     return bio.getvalue()
 
-# --- DÜZELTİLMİŞ: PDF BOYUTU KÜÇÜLTME (COMPRESSION) ---
+# --- MANİPÜLASYON FONKSİYONLARI ---
+
 def compress_pdf(input_pdf):
     reader = PdfReader(input_pdf)
     writer = PdfWriter()
-    
     for page in reader.pages:
-        new_page = writer.add_page(page) # Sayfayı önce yazıcıya ekle
-        new_page.compress_content_streams() # Şimdi güvenle sıkıştır
-    
-    # Ekstra nesne temizliği ile tam optimizasyon
+        new_page = writer.add_page(page)
+        new_page.compress_content_streams()
+    bio = BytesIO()
+    writer.write(bio)
+    return bio.getvalue()
+
+def rotate_pdf(input_pdf, rotation_angle):
+    reader = PdfReader(input_pdf)
+    writer = PdfWriter()
+    for page in reader.pages:
+        page.rotate(rotation_angle)
+        writer.add_page(page)
+    bio = BytesIO()
+    writer.write(bio)
+    return bio.getvalue()
+
+def split_pdf(input_pdf, start_page, end_page):
+    reader = PdfReader(input_pdf)
+    writer = PdfWriter()
+    # Kullanıcı 1-tabanlı girdi veriyor, biz 0-tabanlı kullanıyoruz
+    for i in range(start_page - 1, min(end_page, len(reader.pages))):
+        writer.add_page(reader.pages[i])
     bio = BytesIO()
     writer.write(bio)
     return bio.getvalue()
@@ -92,7 +110,6 @@ st.markdown("""<script async src="https://www.googletagmanager.com/gtag/js?id=G-
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-SH8W61QFSS');
 </script>""", unsafe_allow_html=True)
 
@@ -109,7 +126,7 @@ with st.sidebar:
     show_charts = st.toggle("Grafik Analizini Göster", value=True)
     st.divider()
     st.link_button("☕ Kahve Ismarla", "https://buymeacoffee.com/databpak", use_container_width=True)
-    st.caption("v4.2.2 FIXED BY BERKANT PAK | 2026")
+    st.caption("v4.3.0 MANIPULATION | BY BERKANT PAK | 2026")
 
 # --- 4. ÜST BİLGİ KARTLARI ---
 col1, col2, col3, col4 = st.columns(4)
@@ -125,7 +142,7 @@ st.markdown("### Ücretsiz PDF Tablo Ayıklama ve Gelişmiş OCR Aracı")
 
 tab1, tab2, tab3 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)", "🛠️ Editör & Dönüştürücü"])
 
-# --- TAB 1 & 2 (DEĞİŞİKLİK YOK, KORUNDU) ---
+# --- TAB 1 & 2 (KORUNDU) ---
 with tab1:
     pdf_files = st.file_uploader("PDF dosyalarını yükleyin", type="pdf", accept_multiple_files=True, key="pdf_table_uploader")
     if pdf_files:
@@ -177,13 +194,13 @@ with tab2:
                     result = reader.readtext(np.array(img), detail=0)
                     st.table(pd.DataFrame(result, columns=["Ayıklanan Veriler"]))
 
-# --- TAB 3: PDF EDIT & DÖNÜŞTÜRÜCÜ (DÜZELTİLDİ) ---
+# --- TAB 3: PDF EDIT & DÖNÜŞTÜRÜCÜ (GELİŞTİRİLDİ) ---
 with tab3:
     col_tools, col_conv = st.columns([1, 1])
     
     with col_tools:
         st.subheader("🛠️ PDF Araçları")
-        edit_mode = st.selectbox("İşlem Seçin:", ["PDF Birleştirme", "Sayfa Ayırma", "PDF to Word (Direkt)", "📉 PDF Boyutu Küçült"])
+        edit_mode = st.selectbox("İşlem Seçin:", ["PDF Birleştirme", "Sayfa Ayırma", "PDF Sayfalarını Döndür", "PDF to Word (Direkt)", "📉 PDF Boyutu Küçült"])
         
         if edit_mode == "PDF Birleştirme":
             merge_files = st.file_uploader("Birleştirilecek PDF'ler", type="pdf", accept_multiple_files=True, key="m_up_fix")
@@ -192,6 +209,27 @@ with tab3:
                 for pdf in merge_files: merger.append(pdf)
                 out = BytesIO(); merger.write(out)
                 st.download_button("📥 İndir", out.getvalue(), "birlesmis.pdf")
+
+        elif edit_mode == "Sayfa Ayırma":
+            split_file = st.file_uploader("PDF seçin", type="pdf", key="sp_up")
+            if split_file:
+                reader_sp = PdfReader(split_file)
+                total_p = len(reader_sp.pages)
+                st.info(f"Toplam Sayfa: {total_p}")
+                c1, c2 = st.columns(2)
+                start_p = c1.number_input("Başlangıç Sayfası", min_value=1, max_value=total_p, value=1)
+                end_p = c2.number_input("Bitiş Sayfası", min_value=1, max_value=total_p, value=total_p)
+                if st.button("✂️ Kes ve Ayır"):
+                    split_bin = split_pdf(split_file, start_p, end_p)
+                    st.download_button("📥 Ayrılmış PDF'i İndir", split_bin, "ayrilmis_wizard.pdf")
+
+        elif edit_mode == "PDF Sayfalarını Döndür":
+            rot_file = st.file_uploader("PDF seçin", type="pdf", key="rot_up")
+            if rot_file:
+                angle = st.radio("Döndürme Açısı:", [90, 180, 270], horizontal=True)
+                if st.button("🔄 Döndür"):
+                    rot_bin = rotate_pdf(rot_file, angle)
+                    st.download_button("📥 Döndürülmüş PDF'i İndir", rot_bin, "dondurulmus_wizard.pdf")
 
         elif edit_mode == "PDF to Word (Direkt)":
             word_file = st.file_uploader("PDF seçin", type="pdf", key="w_up_fix")
@@ -202,27 +240,17 @@ with tab3:
         elif edit_mode == "📉 PDF Boyutu Küçült":
             comp_file = st.file_uploader("Küçültülecek PDF", type="pdf", key="c_up_fix")
             if comp_file:
-                original_size = len(comp_file.getvalue()) / 1024
-                st.info(f"Orijinal Boyut: {original_size:.2f} KB")
-                if st.button("🚀 Optimize Et ve Küçült"):
-                    with st.spinner("Sihirbaz PDF'i hafifletiyor..."):
-                        try:
-                            compressed_data = compress_pdf(comp_file)
-                            new_size = len(compressed_data) / 1024
-                            st.success(f"✅ İşlem Tamam! Yeni Boyut: {new_size:.2f} KB")
-                            st.download_button("📥 Küçültülmüş PDF'i İndir", compressed_data, "wizard_compressed.pdf")
-                        except Exception as e:
-                            st.error(f"Sıkıştırma sırasında bir hata oluştu: {e}")
+                if st.button("🚀 Optimize Et"):
+                    compressed_data = compress_pdf(comp_file)
+                    st.download_button("📥 Küçültülmüş PDF'i İndir", compressed_data, "compressed.pdf")
 
     with col_conv:
         st.subheader("🔄 Görsel Dönüştürücü")
         img_conv_file = st.file_uploader("Görsel yükleyin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv_fix")
+                # ... (Görsel dönüştürücü kodunun devamı aynı)
         if img_conv_file:
             st.image(img_conv_file, width=150)
             target_ext = st.selectbox("Hedef Format:", ["PNG", "JPG", "ICO", "WEBP", "BMP"])
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
-
-
-
