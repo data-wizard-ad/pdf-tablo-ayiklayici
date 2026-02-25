@@ -272,6 +272,7 @@ with tab3:
     with col_tools:
         st.subheader("🛠️ PDF Araçları")
         edit_mode = st.selectbox("İşlem Seçin:", [
+            "🚫 Filigran Kaldır (Beta)",
             "PDF Birleştirme", "Sayfa Ayırma", "PDF Sayfalarını Döndür",
             "🔢 Sayfa Numarası Ekle",
             "🔄 Sayfa Sıralamasını Değiştir",
@@ -283,6 +284,34 @@ with tab3:
         preview_container = st.empty()
 
         # --- İŞLEM BLOKLARI BAŞLANGICI ---
+
+        elif edit_mode == "🚫 Filigran Kaldır (Beta)":
+            wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_up")
+            if wm_file:
+                img = get_pdf_preview(wm_file)
+                if img: preview_container.image(img, caption="Orijinal Dosya", width=250)
+                
+                st.warning("⚠️ Bu işlem sadece 'katman' olarak eklenmiş filigranlarda etkilidir. Resim olarak gömülü filigranları temizlemez.")
+                
+                if st.button("🧼 Filigranları Temizle"):
+                    try:
+                        reader = PdfReader(wm_file)
+                        writer = PdfWriter()
+
+                        for page in reader.pages:
+                            # Katmanları (Optional Content) temizleme denemesi
+                            if "/Resources" in page and "/Properties" in page["/Resources"]:
+                                # Bu kısım PDF yapısına göre değişkenlik gösterir, basit katmanları siler
+                                del page["/Resources"]["/Properties"] 
+                            
+                            writer.add_page(page)
+
+                        out = BytesIO()
+                        writer.write(out)
+                        st.success("✅ İşlem tamamlandı. Lütfen sonucu kontrol edin.")
+                        st.download_button("📥 Temizlenmiş PDF'i İndir", out.getvalue(), "no_watermark.pdf")
+                    except Exception as e:
+                        st.error(f"Hata oluştu: {str(e)}")
         if edit_mode == "PDF Birleştirme":
             merge_files = st.file_uploader("Birleştirilecek PDF'ler", type="pdf", accept_multiple_files=True, key="m_up_fix")
             if merge_files:
@@ -460,6 +489,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
