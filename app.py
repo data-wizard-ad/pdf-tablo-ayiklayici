@@ -309,7 +309,7 @@ with tab3:
                     except Exception as e:
                         st.error(f"Hata: {e}. 'reportlab' kütüphanesini kontrol edin.")
 
-       elif edit_mode == "🚫 Filigran Kaldır Pro":
+        elif edit_mode == "🚫 Filigran Kaldır Pro":
             # Çakışmayı önlemek için benzersiz key: wm_pro_final
             wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_pro_final")
             
@@ -494,6 +494,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
