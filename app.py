@@ -305,7 +305,46 @@ with tab3:
                             st.download_button("📥 Numaralı PDF'i İndir", numbered_pdf, "wizard_numbered.pdf")
                     except Exception as e:
                         st.error(f"Hata: {e}. 'reportlab' kütüphanesini kontrol edin.")
+elif edit_mode == "🔄 Sayfa Sıralamasını Değiştir":
+            reorder_file = st.file_uploader("PDF seçin", type="pdf", key="reorder_up")
+            if reorder_file:
+                reader_re = PdfReader(reorder_file)
+                total_p = len(reader_re.pages)
+                
+                st.subheader("🖼️ Sayfa Ön İzlemeleri ve Sıralama")
+                
+                # 1. Ön İzlemeleri Hazırla
+                page_indices = list(range(total_p))
+                
+                # Kullanıcıya sayfaları seçtirerek yeni sırayı belirle
+                new_order_indices = st.multiselect(
+                    "Sayfaları yeni sırasına göre seçin:",
+                    options=page_indices,
+                    default=page_indices,
+                    format_func=lambda x: f"Sayfa {x + 1}"
+                )
 
+                # 2. Seçilen Sıraya Göre Ön İzleme Göster (Yan Yana)
+                if new_order_indices:
+                    cols = st.columns(4) # Her satırda 4 sayfa göster
+                    for i, p_idx in enumerate(new_order_indices):
+                        with cols[i % 4]:
+                            img = get_pdf_preview(reorder_file, page_no=p_idx)
+                            if img:
+                                st.image(img, caption=f"Yeni Sıra: {i+1} (Eski: {p_idx+1})", use_container_width=True)
+
+                    # 3. Yeni Sıralamayı Kaydetme Butonu
+                    if st.button("🪄 Yeni Sırayla Oluştur"):
+                        writer = PdfWriter()
+                        for p_idx in new_order_indices:
+                            writer.add_page(reader_re.pages[p_idx])
+                        
+                        out = BytesIO()
+                        writer.write(out)
+                        st.success("✅ Sayfalar yeniden sıralandı!")
+                        st.download_button("📥 Sıralanmış PDF'i İndir", out.getvalue(), "reordered.pdf")
+                else:
+                    st.warning("Lütfen en az bir sayfa seçin.")
         elif edit_mode == "Sayfa Ayırma":
             split_file = st.file_uploader("PDF seçin", type="pdf", key="sp_up")
             if split_file:
@@ -377,6 +416,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
