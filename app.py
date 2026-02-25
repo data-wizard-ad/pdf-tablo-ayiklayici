@@ -265,7 +265,7 @@ with tab2:
                     result = reader.readtext(np.array(Image.open(uploaded_img)), detail=0)
                     st.table(pd.DataFrame(result, columns=["Ayıklanan Veriler"]))
 
-# --- TAB 3: PDF EDIT & DÖNÜŞTÜRÜCÜ (ÖN İZLEME EKLENDİ) ---
+# --- TAB 3: PDF EDIT & DÖNÜŞTÜRÜCÜ (DÜZENLENMİŞ) ---
 with tab3:
     col_tools, col_conv = st.columns([1, 1])
     
@@ -273,14 +273,14 @@ with tab3:
         st.subheader("🛠️ PDF Araçları")
         edit_mode = st.selectbox("İşlem Seçin:", [
             "PDF Birleştirme", "Sayfa Ayırma", "PDF Sayfalarını Döndür",
-            "🔢 Sayfa Numarası Ekle", # <--- Yeni
+            "🔢 Sayfa Numarası Ekle", 
             "🔐 PDF Şifrele (Parola Koy)", "🖼️ Görsellerden PDF Yap",
             "PDF to Word (Direkt)", "📉 PDF Boyutu Küçült"
         ])
         
-        # Ön izleme alanı (Her araçta dinamik olarak görünecek)
         preview_container = st.empty()
 
+        # --- İŞLEM BLOKLARI BAŞLANGICI ---
         if edit_mode == "PDF Birleştirme":
             merge_files = st.file_uploader("Birleştirilecek PDF'ler", type="pdf", accept_multiple_files=True, key="m_up_fix")
             if merge_files:
@@ -291,30 +291,26 @@ with tab3:
                     out = BytesIO(); merger.write(out)
                     st.download_button("📥 İndir", out.getvalue(), "birlesmis.pdf")
 
-
         elif edit_mode == "🔢 Sayfa Numarası Ekle":
-    num_file = st.file_uploader("Numara eklenecek PDF", type="pdf", key="num_up")
-    if num_file:
-        # Ön izleme göster
-        img = get_pdf_preview(num_file)
-        if img: preview_container.image(img, caption="İşlem Öncesi Görünüm", width=250)
-        
-        st.info("Numaralar otomatik olarak sayfanın sağ alt köşesine eklenecektir.")
-        if st.button("🔢 Numaraları Bas ve Hazırla"):
-            try:
-                with st.spinner("Sihirbaz sayfaları mühürlüyor..."):
-                    numbered_pdf = add_page_numbers(num_file)
-                    st.success("✅ Tüm sayfalar numaralandırıldı!")
-                    st.download_button("📥 Numaralı PDF'i İndir", numbered_pdf, "wizard_numbered.pdf")
-            except Exception as e:
-                st.error(f"Bir hata oluştu: {e}. 'reportlab' kütüphanesinin yüklü olduğundan emin olun.")
+            num_file = st.file_uploader("Numara eklenecek PDF", type="pdf", key="num_up")
+            if num_file:
+                img = get_pdf_preview(num_file)
+                if img: preview_container.image(img, caption="İşlem Öncesi Görünüm", width=250)
+                st.info("Numaralar otomatik olarak sayfanın sağ alt köşesine eklenecektir.")
+                if st.button("🔢 Numaraları Bas ve Hazırla"):
+                    try:
+                        with st.spinner("Sihirbaz sayfaları mühürlüyor..."):
+                            numbered_pdf = add_page_numbers(num_file)
+                            st.success("✅ Tüm sayfalar numaralandırıldı!")
+                            st.download_button("📥 Numaralı PDF'i İndir", numbered_pdf, "wizard_numbered.pdf")
+                    except Exception as e:
+                        st.error(f"Hata: {e}. 'reportlab' kütüphanesini kontrol edin.")
+
         elif edit_mode == "Sayfa Ayırma":
             split_file = st.file_uploader("PDF seçin", type="pdf", key="sp_up")
             if split_file:
-                # Ön izleme
                 img = get_pdf_preview(split_file)
                 if img: preview_container.image(img, caption="Ayırılacak PDF İlk Sayfa", width=250)
-                
                 reader_sp = PdfReader(split_file)
                 total_p = len(reader_sp.pages)
                 st.info(f"Toplam Sayfa: {total_p}")
@@ -328,10 +324,8 @@ with tab3:
         elif edit_mode == "PDF Sayfalarını Döndür":
             rot_file = st.file_uploader("PDF seçin", type="pdf", key="rot_up")
             if rot_file:
-                # Ön izleme
                 img = get_pdf_preview(rot_file)
-                if img: preview_container.image(img, caption="Döndürülecek PDF Orijinal Hali", width=250)
-                
+                if img: preview_container.image(img, caption="Orijinal Hali", width=250)
                 angle = st.radio("Döndürme Açısı:", [90, 180, 270], horizontal=True)
                 if st.button("🔄 Döndür"):
                     rot_bin = rotate_pdf(rot_file, angle)
@@ -341,7 +335,7 @@ with tab3:
             enc_file = st.file_uploader("Şifrelenecek PDF", type="pdf", key="enc_up")
             if enc_file:
                 img = get_pdf_preview(enc_file)
-                if img: preview_container.image(img, caption="Kilitlenecek Dosya", width=200)
+                if img: preview_container.image(img, width=200)
                 new_pass = st.text_input("Belirlenecek Şifre", type="password")
                 if st.button("🔒 Şifrele ve Kilitle") and new_pass:
                     enc_bin = encrypt_pdf(enc_file, new_pass)
@@ -373,6 +367,7 @@ with tab3:
                     compressed_data = compress_pdf(comp_file)
                     st.download_button("📥 İndir", compressed_data, "compressed.pdf")
 
+    # --- SAĞ KOLON: GÖRSEL DÖNÜŞTÜRÜCÜ ---
     with col_conv:
         st.subheader("🔄 Görsel Dönüştürücü")
         img_conv_file = st.file_uploader("Görsel yükleyin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv_fix")
@@ -382,4 +377,15 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
+    with col_conv:
+        st.subheader("🔄 Görsel Dönüştürücü")
+        img_conv_file = st.file_uploader("Görsel yükleyin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv_fix")
+        if img_conv_file:
+            st.image(img_conv_file, width=150, caption="Orijinal Görsel")
+            target_ext = st.selectbox("Hedef Format:", ["PNG", "JPG", "ICO", "WEBP", "BMP"])
+            if st.button(f"✨ Dönüştür"):
+                converted_bytes = convert_image(img_conv_file, target_ext)
+                st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
