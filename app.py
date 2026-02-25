@@ -309,16 +309,15 @@ with tab3:
                     except Exception as e:
                         st.error(f"Hata: {e}. 'reportlab' kütüphanesini kontrol edin.")
 
-        elif edit_mode == "🚫 Filigran Kaldır Pro":
-            # ANAHTAR HATASINI ÖNLEMEK İÇİN KEY DEĞİŞTİRİLDİ
-            wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_pro_uploader_unique")
+       elif edit_mode == "🚫 Filigran Kaldır Pro":
+            # Çakışmayı önlemek için benzersiz key: wm_pro_final
+            wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_pro_final")
             
             if wm_file:
                 img = get_pdf_preview(wm_file)
                 if img: st.image(img, caption="Analiz Edilen Dosya", width=250)
                 
-                c1, c2 = st.columns(2)
-                target_text = c1.text_input("Silinecek Tam Metin", "iLovePDF")
+                target_text = st.text_input("Silinecek Tam Metin (Büyük/Küçük harfe duyarlı)", "iLovePDF")
                 
                 if st.button("🧼 Derin Temizliği Başlat"):
                     try:
@@ -326,34 +325,39 @@ with tab3:
                         writer = PdfWriter()
 
                         for page in reader.pages:
-                            # Sayfayı yazıcıya aktar
+                            # Önce sayfayı writer'a güvenli bir şekilde ekle
                             new_page = writer.add_page(page)
                             
-                            # 1. Yöntem: Metin Operatörlerini Filtrele
-                            # Bu kısım sayfa içeriğini ham veri olarak tarar
-                            if "/Contents" in new_page:
-                                content = new_page.get_contents()
-                                if content:
-                                    # PDF ham verisinde metni bul ve boşlukla değiştir
-                                    # Not: Bu işlem her PDF tipinde %100 sonuç vermeyebilir 
-                                    # ancak 'iLovePDF' gibi damgalarda etkilidir.
-                                    raw_data = content.get_data()
-                                    clean_data = raw_data.replace(target_text.encode(), b" ")
-                                    new_page.get_contents().set_data(clean_data)
+                            # 1. KATMAN TEMİZLİĞİ (OCG & Metadata)
+                            if "/Resources" in new_page:
+                                if "/Properties" in new_page["/Resources"]:
+                                    del new_page["/Resources"]["/Properties"]
 
-                            # 2. Yöntem: Kaynaklardaki (Resources) formları temizle
-                            if "/Resources" in new_page and "/XObject" in new_page["/Resources"]:
-                                x_objects = new_page["/Resources"]["/XObject"]
-                                # Filigran bazen XObject (Resim/Form) olarak tutulur
-                                # Eğer çok fazlaysa veya isimle eşleşirse silinebilir
-                                pass 
+                            # 2. HAM VERİ (CONTENT STREAM) TEMİZLİĞİ
+                            # PDF'in içindeki operatörleri tarar
+                            contents = new_page.get_contents()
+                            if contents:
+                                # Birden fazla content stream varsa birleştirir
+                                if isinstance(contents, list):
+                                    for content in contents:
+                                        data = content.get_data()
+                                        # Metni bul ve operatörü bozmadan boşlukla değiştir
+                                        if target_text.encode() in data:
+                                            content.set_data(data.replace(target_text.encode(), b" "))
+                                else:
+                                    data = contents.get_data()
+                                    if target_text.encode() in data:
+                                        contents.set_data(data.replace(target_text.encode(), b" "))
 
                             new_page.compress_content_streams()
 
+                        # Meta verileri temizle (Dosya geçmişi silinir)
+                        writer.add_metadata({"/Producer": "Master Veri Sihirbazı", "/Software": "Wizard Elite"})
+
                         out = BytesIO()
                         writer.write(out)
-                        st.success(f"✅ '{target_text}' metni için temizlik yapıldı.")
-                        st.download_button("📥 Temizlenmiş PDF'i İndir", out.getvalue(), "wizard_cleaned.pdf")
+                        st.success(f"✅ '{target_text}' odaklı temizlik denendi. Bazı PDF yapılarında görsel filigranlar (vektörel) kalabilir.")
+                        st.download_button("📥 PDF'i İndir", out.getvalue(), "temizlenmis_pro.pdf")
                     except Exception as e:
                         st.error(f"Sihirbaz hata aldı: {e}")
         elif edit_mode == "🔄 Sayfa Sıralamasını Değiştir":
@@ -483,13 +487,14 @@ with tab3:
 
     with col_conv:
         st.subheader("🔄 Görsel Dönüştürücü")
-        img_conv_file = st.file_uploader("Görsel yükleyin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv_fix")
+        img_conv_file = st.file_uploader("Görsel yükleyin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv_final_unique")
         if img_conv_file:
             st.image(img_conv_file, width=150, caption="Orijinal Görsel")
             target_ext = st.selectbox("Hedef Format:", ["PNG", "JPG", "ICO", "WEBP", "BMP"])
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
