@@ -284,7 +284,15 @@ with tab3:
         preview_container = st.empty()
 
         # --- İŞLEM BLOKLARI BAŞLANGICI ---
-
+        if edit_mode == "PDF Birleştirme":
+            merge_files = st.file_uploader("Birleştirilecek PDF'ler", type="pdf", accept_multiple_files=True, key="m_up_fix")
+            if merge_files:
+                st.write(f"📂 {len(merge_files)} dosya hazır.")
+                if st.button("🔗 Birleştir"):
+                    merger = PdfWriter()
+                    for pdf in merge_files: merger.append(pdf)
+                    out = BytesIO(); merger.write(out)
+                    st.download_button("📥 İndir", out.getvalue(), "birlesmis.pdf")
         elif edit_mode == "🚫 Filigran Kaldır (Beta)":
             wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_up")
             if wm_file:
@@ -312,16 +320,6 @@ with tab3:
                         st.download_button("📥 Temizlenmiş PDF'i İndir", out.getvalue(), "no_watermark.pdf")
                     except Exception as e:
                         st.error(f"Hata oluştu: {str(e)}")
-        if edit_mode == "PDF Birleştirme":
-            merge_files = st.file_uploader("Birleştirilecek PDF'ler", type="pdf", accept_multiple_files=True, key="m_up_fix")
-            if merge_files:
-                st.write(f"📂 {len(merge_files)} dosya hazır.")
-                if st.button("🔗 Birleştir"):
-                    merger = PdfWriter()
-                    for pdf in merge_files: merger.append(pdf)
-                    out = BytesIO(); merger.write(out)
-                    st.download_button("📥 İndir", out.getvalue(), "birlesmis.pdf")
-
         elif edit_mode == "🔢 Sayfa Numarası Ekle":
             num_file = st.file_uploader("Numara eklenecek PDF", type="pdf", key="num_up")
             if num_file:
@@ -489,6 +487,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
