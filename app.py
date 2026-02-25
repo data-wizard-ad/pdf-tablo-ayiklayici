@@ -35,14 +35,12 @@ st.set_page_config(
 
 # --- YARDIMCI FONKSİYONLAR ---
 
-# --- YENİ: PDF ÖN İZLEME FONKSİYONU ---
 def get_pdf_preview(pdf_file, page_no=0):
     """Belirli bir PDF sayfasını ön izleme için görsele çevirir."""
     try:
         with pdfplumber.open(pdf_file) as pdf:
             if page_no < len(pdf.pages):
                 page = pdf.pages[page_no]
-                # Sayfayı 72 DPI (standart) bir görsele çevir
                 return page.to_image(resolution=72).original
     except:
         return None
@@ -67,8 +65,8 @@ def pdf_to_word_direct(pdf_file):
     if not WORD_AVAILABLE: return None
     doc = Document()
     doc.add_heading('PDF Metin Aktarımı', 0)
-    reader = PdfReader(pdf_file)
-    for page in reader.pages:
+    reader_word = PdfReader(pdf_file)
+    for page in reader_word.pages:
         doc.add_paragraph(page.extract_text())
     bio = BytesIO()
     doc.save(bio)
@@ -77,75 +75,63 @@ def pdf_to_word_direct(pdf_file):
 # --- MANİPÜLASYON FONKSİYONLARI ---
 
 def add_page_numbers(input_pdf):
-    """PDF sayfalarının sağ altına otomatik sayfa numarası ekler."""
     from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import letter
-    
-    reader = PdfReader(input_pdf)
-    writer = PdfWriter()
-    
-    for i in range(len(reader.pages)):
-        # Sayfa boyutlarını al
-        page = reader.pages[i]
+    reader_num = PdfReader(input_pdf)
+    writer_num = PdfWriter()
+    for i in range(len(reader_num.pages)):
+        page = reader_num.pages[i]
         width = float(page.mediabox.width)
         height = float(page.mediabox.height)
-        
-        # Geçici bir PDF oluştur (sadece numara içeren)
         packet = BytesIO()
         can = canvas.Canvas(packet, pagesize=(width, height))
-        # Sağ alt köşeye numara yaz (Kenardan 30 birim içerde)
         can.setFont("Helvetica", 10)
         can.drawString(width - 50, 30, f"{i + 1}")
         can.save()
-        
         packet.seek(0)
         num_pdf = PdfReader(packet)
-        
-        # Numarayı orijinal sayfayla birleştir
         page.merge_page(num_pdf.pages[0])
-        writer.add_page(page)
-        
+        writer_num.add_page(page)
     bio = BytesIO()
-    writer.write(bio)
+    writer_num.write(bio)
     return bio.getvalue()
 
 def compress_pdf(input_pdf):
-    reader = PdfReader(input_pdf)
-    writer = PdfWriter()
-    for page in reader.pages:
-        new_page = writer.add_page(page)
+    reader_comp = PdfReader(input_pdf)
+    writer_comp = PdfWriter()
+    for page in reader_comp.pages:
+        new_page = writer_comp.add_page(page)
         new_page.compress_content_streams()
     bio = BytesIO()
-    writer.write(bio)
+    writer_comp.write(bio)
     return bio.getvalue()
 
 def rotate_pdf(input_pdf, rotation_angle):
-    reader = PdfReader(input_pdf)
-    writer = PdfWriter()
-    for page in reader.pages:
+    reader_rot = PdfReader(input_pdf)
+    writer_rot = PdfWriter()
+    for page in reader_rot.pages:
         page.rotate(rotation_angle)
-        writer.add_page(page)
+        writer_rot.add_page(page)
     bio = BytesIO()
-    writer.write(bio)
+    writer_rot.write(bio)
     return bio.getvalue()
 
 def split_pdf(input_pdf, start_page, end_page):
-    reader = PdfReader(input_pdf)
-    writer = PdfWriter()
-    for i in range(start_page - 1, min(end_page, len(reader.pages))):
-        writer.add_page(reader.pages[i])
+    reader_split = PdfReader(input_pdf)
+    writer_split = PdfWriter()
+    for i in range(start_page - 1, min(end_page, len(reader_split.pages))):
+        writer_split.add_page(reader_split.pages[i])
     bio = BytesIO()
-    writer.write(bio)
+    writer_split.write(bio)
     return bio.getvalue()
 
 def encrypt_pdf(input_pdf, password):
-    reader = PdfReader(input_pdf)
-    writer = PdfWriter()
-    for page in reader.pages:
-        writer.add_page(page)
-    writer.encrypt(password)
+    reader_enc = PdfReader(input_pdf)
+    writer_enc = PdfWriter()
+    for page in reader_enc.pages:
+        writer_enc.add_page(page)
+    writer_enc.encrypt(password)
     bio = BytesIO()
-    writer.write(bio)
+    writer_enc.write(bio)
     return bio.getvalue()
 
 def images_to_pdf(image_files):
@@ -209,7 +195,6 @@ st.title("🧙‍♂️ Master Veri Sihirbazı Elite")
 
 tab1, tab2, tab3 = st.tabs(["📄 PDF İşleme", "🖼️ Resimden Yazıya (OCR)", "🛠️ Editör & Dönüştürücü"])
 
-# --- TAB 1 & 2 KORUNDU ---
 with tab1:
     pdf_files = st.file_uploader("PDF dosyalarını yükleyin", type="pdf", accept_multiple_files=True, key="pdf_table_uploader")
     if pdf_files:
@@ -217,11 +202,9 @@ with tab1:
         with st.status("🔮 Sihirbaz dosyaları inceliyor...", expanded=False) as status:
             for f in pdf_files:
                 try:
-                    # Dosya yüklendiğinde bir ön izleme gösterelim
                     img_preview = get_pdf_preview(f)
                     if img_preview:
                         st.image(img_preview, caption=f"{f.name} - İlk Sayfa Ön İzlemesi", width=300)
-                    
                     with pdfplumber.open(f, password=pdf_password) as pdf:
                         pages_list = []
                         for i, page in enumerate(pdf.pages):
@@ -258,14 +241,13 @@ with tab2:
     st.subheader("🖼️ Görselden Veri Ayıklama")
     uploaded_img = st.file_uploader("Resim yükleyin", type=["jpg", "png", "jpeg"])
     if uploaded_img:
-        st.image(uploaded_img, caption="Yüklenen Görsel", width=400) # Görsel zaten bir resim, doğrudan gösteriyoruz
+        st.image(uploaded_img, caption="Yüklenen Görsel", width=400)
         if st.button("🚀 Resmi Tara"):
             if OCR_AVAILABLE:
                 with st.spinner("🧠 Metinler okunuyor..."):
                     result = reader.readtext(np.array(Image.open(uploaded_img)), detail=0)
                     st.table(pd.DataFrame(result, columns=["Ayıklanan Veriler"]))
 
-# --- TAB 3: PDF EDIT & DÖNÜŞTÜRÜCÜ (DÜZENLENMİŞ) ---
 with tab3:
     col_tools, col_conv = st.columns([1, 1])
     
@@ -283,7 +265,6 @@ with tab3:
         
         preview_container = st.empty()
 
-        # --- İŞLEM BLOKLARI BAŞLANGICI ---
         if edit_mode == "PDF Birleştirme":
             merge_files = st.file_uploader("Birleştirilecek PDF'ler", type="pdf", accept_multiple_files=True, key="m_up_fix")
             if merge_files:
@@ -299,7 +280,6 @@ with tab3:
             if num_file:
                 img = get_pdf_preview(num_file)
                 if img: preview_container.image(img, caption="İşlem Öncesi Görünüm", width=250)
-                st.info("Numaralar otomatik olarak sayfanın sağ alt köşesine eklenecektir.")
                 if st.button("🔢 Numaraları Bas ve Hazırla"):
                     try:
                         with st.spinner("Sihirbaz sayfaları mühürlüyor..."):
@@ -307,211 +287,122 @@ with tab3:
                             st.success("✅ Tüm sayfalar numaralandırıldı!")
                             st.download_button("📥 Numaralı PDF'i İndir", numbered_pdf, "wizard_numbered.pdf")
                     except Exception as e:
-                        st.error(f"Hata: {e}. 'reportlab' kütüphanesini kontrol edin.")
+                        st.error(f"Hata: {e}")
 
         elif edit_mode == "🚫 Filigran Kaldır Pro":
-            # Çakışmayı önlemek için benzersiz key: wm_pro_final
-            wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_pro_final")
-            
+            wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_pro_v5")
             if wm_file:
                 img = get_pdf_preview(wm_file)
-                if img: st.image(img, caption="Analiz Edilen Dosya", width=250)
+                if img: st.image(img, width=250)
                 
-                target_text = st.text_input("Silinecek Tam Metin (Büyük/Küçük harfe duyarlı)", "iLovePDF")
+                clean_method = st.radio("Temizlik Yöntemi:", ["Metin Bazlı (Açık Filigran)", "Maskeleme (Görsel/Mühürlü Filigran)"])
                 
-                if st.button("🧼 Derin Temizliği Başlat"):
-                    try:
-                        reader = PdfReader(wm_file)
-                        writer = PdfWriter()
-
-                        for page in reader.pages:
-                            # Önce sayfayı writer'a güvenli bir şekilde ekle
-                            new_page = writer.add_page(page)
-                            
-                            # 1. KATMAN TEMİZLİĞİ (OCG & Metadata)
-                            if "/Resources" in new_page:
-                                if "/Properties" in new_page["/Resources"]:
-                                    del new_page["/Resources"]["/Properties"]
-
-                            # 2. HAM VERİ (CONTENT STREAM) TEMİZLİĞİ
-                            # PDF'in içindeki operatörleri tarar
+                if clean_method == "Metin Bazlı (Açık Filigran)":
+                    target_text = st.text_input("Silinecek Metin", "iLovePDF")
+                    if st.button("🧼 Metni Temizle"):
+                        reader_wm = PdfReader(wm_file)
+                        writer_wm = PdfWriter()
+                        for page in reader_wm.pages:
+                            new_page = writer_wm.add_page(page)
                             contents = new_page.get_contents()
                             if contents:
-                                # Birden fazla content stream varsa birleştirir
-                                if isinstance(contents, list):
-                                    for content in contents:
-                                        data = content.get_data()
-                                        # Metni bul ve operatörü bozmadan boşlukla değiştir
-                                        if target_text.encode() in data:
-                                            content.set_data(data.replace(target_text.encode(), b" "))
-                                else:
-                                    data = contents.get_data()
-                                    if target_text.encode() in data:
-                                        contents.set_data(data.replace(target_text.encode(), b" "))
+                                data = contents.get_data() if not isinstance(contents, list) else b"".join([c.get_data() for c in contents])
+                                if target_text.encode() in data:
+                                    new_page.get_contents().set_data(data.replace(target_text.encode(), b" "))
+                        out = BytesIO(); writer_wm.write(out)
+                        st.download_button("📥 İndir", out.getvalue(), "cleaned_text.pdf")
 
-                            new_page.compress_content_streams()
+                else:
+                    area = st.selectbox("Kapatılacak Bölge:", ["Alt Kenar (Standart iLovePDF)", "Üst Kenar", "Orta Bölge"])
+                    if st.button("⬜ Maskele ve Kapat"):
+                        from reportlab.pdfgen import canvas
+                        from reportlab.lib.colors import white
+                        reader_mask = PdfReader(wm_file)
+                        writer_mask = PdfWriter()
+                        for page in reader_mask.pages:
+                            w, h = float(page.mediabox.width), float(page.mediabox.height)
+                            packet = BytesIO()
+                            can = canvas.Canvas(packet, pagesize=(w, h))
+                            can.setFillColor(white); can.setStrokeColor(white)
+                            if area == "Alt Kenar (Standart iLovePDF)": can.rect(0, 0, w, 40, fill=1)
+                            elif area == "Üst Kenar": can.rect(0, h-40, w, 40, fill=1)
+                            elif area == "Orta Bölge": can.rect(w/4, h/4, w/2, 50, fill=1)
+                            can.save(); packet.seek(0)
+                            page.merge_page(PdfReader(packet).pages[0])
+                            writer_mask.add_page(page)
+                        out = BytesIO(); writer_mask.write(out)
+                        st.success("✅ Maskeleme başarıyla uygulandı.")
+                        st.download_button("📥 Maskelenmiş PDF İndir", out.getvalue(), "masked.pdf")
 
-                        # Meta verileri temizle (Dosya geçmişi silinir)
-                        writer.add_metadata({"/Producer": "Master Veri Sihirbazı", "/Software": "Wizard Elite"})
-
-                        out = BytesIO()
-                        writer.write(out)
-                        st.success(f"✅ '{target_text}' odaklı temizlik denendi. Bazı PDF yapılarında görsel filigranlar (vektörel) kalabilir.")
-                        st.download_button("📥 PDF'i İndir", out.getvalue(), "temizlenmis_pro.pdf")
-                    except Exception as e:
-                        st.error(f"Sihirbaz hata aldı: {e}")
         elif edit_mode == "🔄 Sayfa Sıralamasını Değiştir":
-                    reorder_file = st.file_uploader("PDF seçin", type="pdf", key="reorder_up")
-                    if reorder_file:
-                        reader_re = PdfReader(reorder_file)
-                        total_p = len(reader_re.pages)
-                        
-                        st.subheader("🖼️ Sayfa Ön İzlemeleri ve Sıralama")
-                        
-                        # 1. Ön İzlemeleri Hazırla
-                        page_indices = list(range(total_p))
-                        
-                        # Kullanıcıya sayfaları seçtirerek yeni sırayı belirle
-                        new_order_indices = st.multiselect(
-                            "Sayfaları yeni sırasına göre seçin:",
-                            options=page_indices,
-                            default=page_indices,
-                            format_func=lambda x: f"Sayfa {x + 1}"
-                        )
-        
-                        # 2. Seçilen Sıraya Göre Ön İzleme Göster (Yan Yana)
-                        if new_order_indices:
-                            cols = st.columns(4) # Her satırda 4 sayfa göster
-                            for i, p_idx in enumerate(new_order_indices):
-                                with cols[i % 4]:
-                                    img = get_pdf_preview(reorder_file, page_no=p_idx)
-                                    if img:
-                                        st.image(img, caption=f"Yeni Sıra: {i+1} (Eski: {p_idx+1})", use_container_width=True)
-        
-                            # 3. Yeni Sıralamayı Kaydetme Butonu
-                            if st.button("🪄 Yeni Sırayla Oluştur"):
-                                writer = PdfWriter()
-                                for p_idx in new_order_indices:
-                                    writer.add_page(reader_re.pages[p_idx])
-                                
-                                out = BytesIO()
-                                writer.write(out)
-                                st.success("✅ Sayfalar yeniden sıralandı!")
-                                st.download_button("📥 Sıralanmış PDF'i İndir", out.getvalue(), "reordered.pdf")
-                        else:
-                            st.warning("Lütfen en az bir sayfa seçin.")
+            reorder_file = st.file_uploader("PDF seçin", type="pdf", key="reorder_up")
+            if reorder_file:
+                reader_re = PdfReader(reorder_file)
+                total_p = len(reader_re.pages)
+                page_indices = list(range(total_p))
+                new_order_indices = st.multiselect("Yeni Sıra:", options=page_indices, default=page_indices, format_func=lambda x: f"Sayfa {x + 1}")
+                if st.button("🪄 Yeni Sırayla Oluştur") and new_order_indices:
+                    writer_re = PdfWriter()
+                    for p_idx in new_order_indices: writer_re.add_page(reader_re.pages[p_idx])
+                    out = BytesIO(); writer_re.write(out)
+                    st.download_button("📥 İndir", out.getvalue(), "reordered.pdf")
 
         elif edit_mode == "🗑️ Sayfa Sil / Sırala":
             sort_file = st.file_uploader("PDF seçin", type="pdf", key="sort_unique_key")
             if sort_file:
-                reader = PdfReader(sort_file)
-                total = len(reader.pages)
-                indices = list(range(total))
-                
-                selected_indices = st.multiselect(
-                    "Tutulacak ve sıralanacak sayfaları seçin:",
-                    options=indices,
-                    default=indices,
-                    format_func=lambda x: f"Sayfa {x+1}"
-                )
-                
+                reader_sort = PdfReader(sort_file)
+                selected_indices = st.multiselect("Tutulacak Sayfalar:", options=list(range(len(reader_sort.pages))), default=list(range(len(reader_sort.pages))), format_func=lambda x: f"Sayfa {x+1}")
                 if st.button("🪄 Yeni PDF Oluştur"):
-                    writer = PdfWriter()
-                    for idx in selected_indices:
-                        writer.add_page(reader.pages[idx])
-                    
-                    out = BytesIO()
-                    writer.write(out)
-                    st.download_button("📥 İndir", out.getvalue(), "duzenlenmiş.pdf")
+                    writer_sort = PdfWriter()
+                    for idx in selected_indices: writer_sort.add_page(reader_sort.pages[idx])
+                    out = BytesIO(); writer_sort.write(out)
+                    st.download_button("📥 İndir", out.getvalue(), "edited.pdf")
+
         elif edit_mode == "Sayfa Ayırma":
             split_file = st.file_uploader("PDF seçin", type="pdf", key="sp_up")
             if split_file:
-                img = get_pdf_preview(split_file)
-                if img: preview_container.image(img, caption="Ayırılacak PDF İlk Sayfa", width=250)
                 reader_sp = PdfReader(split_file)
-                total_p = len(reader_sp.pages)
-                st.info(f"Toplam Sayfa: {total_p}")
                 c1, c2 = st.columns(2)
-                start_p = c1.number_input("Başlangıç Sayfası", min_value=1, max_value=total_p, value=1)
-                end_p = c2.number_input("Bitiş Sayfası", min_value=1, max_value=total_p, value=total_p)
+                start_p = c1.number_input("Başlangıç", min_value=1, max_value=len(reader_sp.pages), value=1)
+                end_p = c2.number_input("Bitiş", min_value=1, max_value=len(reader_sp.pages), value=len(reader_sp.pages))
                 if st.button("✂️ Kes ve Ayır"):
-                    split_bin = split_pdf(split_file, start_p, end_p)
-                    st.download_button("📥 Ayrılmış PDF'i İndir", split_bin, "ayrilmis.pdf")
+                    st.download_button("📥 İndir", split_pdf(split_file, start_p, end_p), "split.pdf")
 
         elif edit_mode == "PDF Sayfalarını Döndür":
             rot_file = st.file_uploader("PDF seçin", type="pdf", key="rot_up")
             if rot_file:
-                img = get_pdf_preview(rot_file)
-                if img: preview_container.image(img, caption="Orijinal Hali", width=250)
-                angle = st.radio("Döndürme Açısı:", [90, 180, 270], horizontal=True)
+                angle = st.radio("Açı:", [90, 180, 270], horizontal=True)
                 if st.button("🔄 Döndür"):
-                    rot_bin = rotate_pdf(rot_file, angle)
-                    st.download_button("📥 İndir", rot_bin, "dondurulmus.pdf")
+                    st.download_button("📥 İndir", rotate_pdf(rot_file, angle), "rotated.pdf")
 
         elif edit_mode == "🔐 PDF Şifrele (Parola Koy)":
             enc_file = st.file_uploader("Şifrelenecek PDF", type="pdf", key="enc_up")
             if enc_file:
-                img = get_pdf_preview(enc_file)
-                if img: preview_container.image(img, width=200)
-                new_pass = st.text_input("Belirlenecek Şifre", type="password")
-                if st.button("🔒 Şifrele ve Kilitle") and new_pass:
-                    enc_bin = encrypt_pdf(enc_file, new_pass)
-                    st.download_button("📥 İndir", enc_bin, "sifreli.pdf")
+                new_pass = st.text_input("Şifre", type="password")
+                if st.button("🔒 Şifrele") and new_pass:
+                    st.download_button("📥 İndir", encrypt_pdf(enc_file, new_pass), "encrypted.pdf")
 
         elif edit_mode == "🖼️ Görsellerden PDF Yap":
             port_files = st.file_uploader("Resimleri Seçin", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
-            if port_files:
-                st.image(port_files[0], caption="İlk Görsel (Kapak)", width=200)
-                if st.button("📑 PDF Yap"):
-                    port_bin = images_to_pdf(port_files)
-                    st.download_button("📥 İndir", port_bin, "portfoy.pdf")
+            if port_files and st.button("📑 PDF Yap"):
+                st.download_button("📥 İndir", images_to_pdf(port_files), "images_to.pdf")
 
         elif edit_mode == "PDF to Word (Direkt)":
-            word_file = st.file_uploader("PDF seçin", type="pdf")
-            if word_file:
-                img = get_pdf_preview(word_file)
-                if img: preview_container.image(img, width=200)
-                if st.button("📝 Dönüştür"):
-                    word_bin = pdf_to_word_direct(word_file)
-                    st.download_button("📥 Word İndir", word_bin, "converted.docx")
+            word_file = st.file_uploader("PDF seçin", type="pdf", key="word_direct_up")
+            if word_file and st.button("📝 Dönüştür"):
+                st.download_button("📥 İndir", pdf_to_word_direct(word_file), "converted.docx")
 
         elif edit_mode == "📉 PDF Boyutu Küçült":
-            comp_file = st.file_uploader("Küçültülecek PDF", type="pdf")
-            if comp_file:
-                img = get_pdf_preview(comp_file)
-                if img: preview_container.image(img, width=200)
-                if st.button("🚀 Optimize Et"):
-                    compressed_data = compress_pdf(comp_file)
-                    st.download_button("📥 İndir", compressed_data, "compressed.pdf")
-
+            comp_file = st.file_uploader("Küçültülecek PDF", type="pdf", key="comp_up")
+            if comp_file and st.button("🚀 Optimize Et"):
+                st.download_button("📥 İndir", compress_pdf(comp_file), "compressed.pdf")
 
     with col_conv:
         st.subheader("🔄 Görsel Dönüştürücü")
         img_conv_file = st.file_uploader("Görsel yükleyin", type=["jpg", "jpeg", "png", "webp", "bmp"], key="img_conv_final_unique")
         if img_conv_file:
-            st.image(img_conv_file, width=150, caption="Orijinal Görsel")
+            st.image(img_conv_file, width=150)
             target_ext = st.selectbox("Hedef Format:", ["PNG", "JPG", "ICO", "WEBP", "BMP"])
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
-                st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"conv.{target_ext.lower()}")
