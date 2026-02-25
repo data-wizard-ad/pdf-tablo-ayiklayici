@@ -272,9 +272,9 @@ with tab3:
     with col_tools:
         st.subheader("🛠️ PDF Araçları")
         edit_mode = st.selectbox("İşlem Seçin:", [
-            "🚫 Filigran Kaldır (Pro)",
             "PDF Birleştirme", "Sayfa Ayırma", "PDF Sayfalarını Döndür",
             "🔢 Sayfa Numarası Ekle",
+            "🚫 Filigran Kaldır (Pro)",
             "🔄 Sayfa Sıralamasını Değiştir",
             "🗑️ Sayfa Sil / Sırala",
             "🔐 PDF Şifrele (Parola Koy)", "🖼️ Görsellerden PDF Yap",
@@ -499,6 +499,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
