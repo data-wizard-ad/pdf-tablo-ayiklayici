@@ -293,7 +293,23 @@ with tab3:
                     for pdf in merge_files: merger.append(pdf)
                     out = BytesIO(); merger.write(out)
                     st.download_button("📥 İndir", out.getvalue(), "birlesmis.pdf")
-       elif edit_mode == "🚫 Filigran Kaldır (Pro)":
+      
+        elif edit_mode == "🔢 Sayfa Numarası Ekle":
+            num_file = st.file_uploader("Numara eklenecek PDF", type="pdf", key="num_up")
+            if num_file:
+                img = get_pdf_preview(num_file)
+                if img: preview_container.image(img, caption="İşlem Öncesi Görünüm", width=250)
+                st.info("Numaralar otomatik olarak sayfanın sağ alt köşesine eklenecektir.")
+                if st.button("🔢 Numaraları Bas ve Hazırla"):
+                    try:
+                        with st.spinner("Sihirbaz sayfaları mühürlüyor..."):
+                            numbered_pdf = add_page_numbers(num_file)
+                            st.success("✅ Tüm sayfalar numaralandırıldı!")
+                            st.download_button("📥 Numaralı PDF'i İndir", numbered_pdf, "wizard_numbered.pdf")
+                    except Exception as e:
+                        st.error(f"Hata: {e}. 'reportlab' kütüphanesini kontrol edin.")
+
+         elif edit_mode == "🚫 Filigran Kaldır (Pro)":
             wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_up_pro")
             if wm_file:
                 img = get_pdf_preview(wm_file)
@@ -332,20 +348,6 @@ with tab3:
                         st.download_button("📥 Pro PDF'i İndir", out.getvalue(), "cleaned_pro.pdf")
                     except Exception as e:
                         st.error(f"Hata: {str(e)}")
-        elif edit_mode == "🔢 Sayfa Numarası Ekle":
-            num_file = st.file_uploader("Numara eklenecek PDF", type="pdf", key="num_up")
-            if num_file:
-                img = get_pdf_preview(num_file)
-                if img: preview_container.image(img, caption="İşlem Öncesi Görünüm", width=250)
-                st.info("Numaralar otomatik olarak sayfanın sağ alt köşesine eklenecektir.")
-                if st.button("🔢 Numaraları Bas ve Hazırla"):
-                    try:
-                        with st.spinner("Sihirbaz sayfaları mühürlüyor..."):
-                            numbered_pdf = add_page_numbers(num_file)
-                            st.success("✅ Tüm sayfalar numaralandırıldı!")
-                            st.download_button("📥 Numaralı PDF'i İndir", numbered_pdf, "wizard_numbered.pdf")
-                    except Exception as e:
-                        st.error(f"Hata: {e}. 'reportlab' kütüphanesini kontrol edin.")
         elif edit_mode == "🔄 Sayfa Sıralamasını Değiştir":
                     reorder_file = st.file_uploader("PDF seçin", type="pdf", key="reorder_up")
                     if reorder_file:
@@ -499,6 +501,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
