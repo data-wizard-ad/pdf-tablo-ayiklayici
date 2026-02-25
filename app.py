@@ -290,16 +290,16 @@ with tab3:
                         st.error(f"Hata: {e}")
 
         elif edit_mode == "🚫 Filigran Kaldır Pro":
-            wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_pro_v5")
+            wm_file = st.file_uploader("Filigranlı PDF seçin", type="pdf", key="wm_pro_v5_final")
             if wm_file:
                 img = get_pdf_preview(wm_file)
-                if img: st.image(img, width=250)
+                if img: st.image(img, width=250, caption="İşlem Yapılacak Dosya")
                 
-                clean_method = st.radio("Temizlik Yöntemi:", ["Metin Bazlı (Açık Filigran)", "Maskeleme (Görsel/Mühürlü Filigran)"])
+                clean_method = st.radio("Yöntem:", ["Hassas Metin Temizliği", "Nokta Atışı Maskeleme (Önerilen)"])
                 
-                if clean_method == "Metin Bazlı (Açık Filigran)":
+                if clean_method == "Hassas Metin Temizliği":
                     target_text = st.text_input("Silinecek Metin", "iLovePDF")
-                    if st.button("🧼 Metni Temizle"):
+                    if st.button("🧼 Metni Kazı"):
                         reader_wm = PdfReader(wm_file)
                         writer_wm = PdfWriter()
                         for page in reader_wm.pages:
@@ -310,30 +310,44 @@ with tab3:
                                 if target_text.encode() in data:
                                     new_page.get_contents().set_data(data.replace(target_text.encode(), b" "))
                         out = BytesIO(); writer_wm.write(out)
-                        st.download_button("📥 İndir", out.getvalue(), "cleaned_text.pdf")
+                        st.download_button("📥 İndir", out.getvalue(), "metin_temiz.pdf")
 
                 else:
-                    area = st.selectbox("Kapatılacak Bölge:", ["Alt Kenar (Standart iLovePDF)", "Üst Kenar", "Orta Bölge"])
-                    if st.button("⬜ Maskele ve Kapat"):
+                    st.info("💡 iLovePDF filigranları için optimize edilmiş hassas maskeleme uygulanır.")
+                    if st.button("⬜ Hassas Maskeleme Başlat"):
                         from reportlab.pdfgen import canvas
                         from reportlab.lib.colors import white
                         reader_mask = PdfReader(wm_file)
                         writer_mask = PdfWriter()
+                        
                         for page in reader_mask.pages:
                             w, h = float(page.mediabox.width), float(page.mediabox.height)
                             packet = BytesIO()
                             can = canvas.Canvas(packet, pagesize=(w, h))
-                            can.setFillColor(white); can.setStrokeColor(white)
-                            if area == "Alt Kenar (Standart iLovePDF)": can.rect(0, 0, w, 40, fill=1)
-                            elif area == "Üst Kenar": can.rect(0, h-40, w, 40, fill=1)
-                            elif area == "Orta Bölge": can.rect(w/4, h/4, w/2, 50, fill=1)
-                            can.save(); packet.seek(0)
+                            can.setFillColor(white)
+                            can.setStrokeColor(white)
+                            
+                            # iLovePDF Dağılım Koordinatları (Hassaslaştırılmış Küçük Kutular)
+                            # Köşeler
+                            can.rect(5, 5, 60, 15, fill=1) # Sol Alt
+                            can.rect(w-65, 5, 60, 15, fill=1) # Sağ Alt
+                            can.rect(5, h-20, 60, 15, fill=1) # Sol Üst
+                            can.rect(w-65, h-20, 60, 15, fill=1) # Sağ Üst
+                            
+                            # Orta ve Kenar Dağılımları (Metni bozmamak için çok dar tutuldu)
+                            can.rect(w/2 - 30, 5, 60, 15, fill=1) # Alt Orta
+                            can.rect(w/2 - 30, h-20, 60, 15, fill=1) # Üst Orta
+                            can.rect(5, h/2 - 10, 60, 15, fill=1) # Sol Orta
+                            can.rect(w-65, h/2 - 10, 60, 15, fill=1) # Sağ Orta
+                            
+                            can.save()
+                            packet.seek(0)
                             page.merge_page(PdfReader(packet).pages[0])
                             writer_mask.add_page(page)
+                            
                         out = BytesIO(); writer_mask.write(out)
-                        st.success("✅ Maskeleme başarıyla uygulandı.")
-                        st.download_button("📥 Maskelenmiş PDF İndir", out.getvalue(), "masked.pdf")
-
+                        st.success("✅ Metne zarar vermeden kenar filigranları maskelendi.")
+                        st.download_button("📥 Temiz PDF İndir", out.getvalue(), "hassas_maske.pdf")
         elif edit_mode == "🔄 Sayfa Sıralamasını Değiştir":
             reorder_file = st.file_uploader("PDF seçin", type="pdf", key="reorder_up")
             if reorder_file:
@@ -406,3 +420,4 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"conv.{target_ext.lower()}")
+
