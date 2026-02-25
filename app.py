@@ -326,24 +326,29 @@ with tab3:
                         writer = PdfWriter()
 
                         for page in reader.pages:
-                            # 1. Katman Bazlı Temizlik
-                            if "/Resources" in page and "/Properties" in page["/Resources"]:
-                                del page["/Resources"]["/Properties"]
+                            # 1. Sayfayı önce Writer'a ekle (Bu kritik adım!)
+                            new_page = writer.add_page(page)
+                            
+                            # 2. Katman Bazlı Temizlik (Resources üzerinden)
+                            if "/Resources" in new_page and "/Properties" in new_page["/Resources"]:
+                                try:
+                                    del new_page["/Resources"]["/Properties"]
+                                except:
+                                    pass
 
-                            # 2. İçerik Akışını Düzenleme
-                            if "/Contents" in page:
-                                page.compress_content_streams() 
+                            # 3. İçerik Akışını Normalize Et
+                            # Bu işlem sayfayı writer'ın bir parçası yaptıktan sonra güvenlidir
+                            new_page.compress_content_streams() 
 
-                            writer.add_page(page)
-
+                        # Meta verileri güncelle
                         writer.add_metadata({"/Producer": "Master Veri Sihirbazı Elite", "/Creator": "Wizard Pro Engine"})
 
                         out = BytesIO()
                         writer.write(out)
-                        st.success(f"✅ '{wm_text}' odaklı derin temizlik tamamlandı!")
-                        st.download_button("📥 Pro PDF'i İndir", out.getvalue(), "cleaned_pro.pdf")
+                        st.success(f"✅ Derin temizlik tamamlandı!")
+                        st.download_button("📥 Pro PDF'i İndir", out.getvalue(), "cleaned_pro_v2.pdf")
                     except Exception as e:
-                        st.error(f"Hata: {str(e)}")
+                        st.error(f"Sihirbaz hatayı yakaladı: {str(e)}")
         elif edit_mode == "🔄 Sayfa Sıralamasını Değiştir":
                     reorder_file = st.file_uploader("PDF seçin", type="pdf", key="reorder_up")
                     if reorder_file:
@@ -497,6 +502,7 @@ with tab3:
             if st.button(f"✨ Dönüştür"):
                 converted_bytes = convert_image(img_conv_file, target_ext)
                 st.download_button(f"📥 {target_ext} İndir", converted_bytes, f"wizard_conv.{target_ext.lower()}")
+
 
 
 
